@@ -1,0 +1,72 @@
+{
+  "get_extra_assets": {
+    "@class": ".GetDownloadableRequest",
+    "shortCode": "DOWNLOADABLES_HD",
+    "requestId": "something"
+  },
+  "get_team_data": {
+    "@class": ".GetTeamRequest",
+    "teamId": "some id",
+    "teamType": "BASIC_TEAM",
+    "requestId": "something"
+  },
+  "get_leaderboard": {
+    "@class": ".LeaderboardDataRequest",
+    "entryCount": 100,
+    "leaderboardShortCode": "",
+    "offset": 0,
+    "requestId": "something"
+  },
+  "accept_friend_request": {
+    "@class": ".LogEventRequest",
+    "eventKey": "FRIEND_ACCEPT_FRIEND",
+    "request_id": "not set",
+    "requestId": "something"
+  },
+  "join_friendly_lobby": {
+    "@class": ".LogEventRequest",
+    "eventKey": "FRIENDLY_MATCH_JOIN",
+    "match_id": "to be filled",
+    "create": 0,
+    "open_to_team": 1,
+    "requestId": "something"
+  },
+  "send_friendly_chat_message": {
+    "@class": ".LogEventRequest",
+    "eventKey": "FRIENDLY_MATCH_CHAT_ENTRY",
+    "match_id": "to be filled",
+    "message": "test message",
+    "requestId": "something"
+  },
+  "get_current_season": {
+    "@class": ".LogEventRequest",
+    "eventKey": "GET_CURRENT_SEASON_INFO",
+    "requestId": "keepalive"
+  },
+  "get_player_info": {
+    "@class": ".LogEventRequest",
+    "eventKey": "PLAYER_INFO",
+    "player_id": "some_id",
+    "requestId": "something"
+  },
+  "get_current_challenge": {
+    "@class": ".LogEventRequest",
+    "eventKey": "REFRESH_CHALLENGE_MODE",
+    "requestId": "something"
+  },
+  "get_teams": {
+    "@class": ".LogEventRequest",
+    "eventKey": "TEAM_SEARCH_EVENT",
+    "NAME": "put name here",
+    "COUNTRY": "",
+    "REQUIRED_TROPHIES": 0,
+    "requestId": "something"
+  },
+  "send_team_chat_message": {
+    "@class": ".SendTeamChatMessageRequest",
+    "message": "",
+    "teamType": "BASIC_TEAM",
+    "teamId": "not-set",
+    "requestId": "something"
+  }
+}
