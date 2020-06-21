@@ -146,4 +146,5 @@ def update_hats_and_golfers():
                     elem[key] = strings[elem[key]]
             outputDict[id] = elem.copy()
 
-update_hats_and_golfers()
+if os.path.isdir(assets_path):
+  update_hats_and_golfers()

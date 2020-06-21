@@ -149,11 +149,11 @@ async def get_new_session():
 async def login(ws, request):
     global season
     await ws.send(json.dumps(request))
-    await recv_all(default_ws) #receive the filler messages
-    await ws.send(json.dumps(commandhandler.requests["get_current_season"]))
-    result = await ws.recv()
-    bot_globals.curr_season = json.loads(result)["scriptData"]["current_season"]["seasonnumber"] #update the season number
-    print(bot_globals.curr_season)
+    #await recv_all(default_ws) #receive the filler messages
+    #await ws.send(json.dumps(commandhandler.requests["get_current_season"]))
+    #result = await ws.recv()
+    #bot_globals.curr_season = json.loads(result)["scriptData"]["current_season"]["seasonnumber"] #update the season number
+    #print(bot_globals.curr_season)
 
 async def gbconnect():
     global default_ws, heartbeat_task
