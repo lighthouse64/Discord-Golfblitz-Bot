@@ -440,7 +440,7 @@ async def finishGetExtraPlayerInfo(response):
     corePlayerData = bigPlayerData["data"]
     body += "friend code: " + bigPlayerData["invite_code"] + "\n"
     body += "xp: " + str(corePlayerData["xp"]) + "\n"
-    sellTime = time.time() - bigPlayerData["token_time"]/1000
+    sellTime = bigPlayerData["token_time"]/1000 - time.time()
     body += "player can sell cards {0}\n".format("in " + str(datetime.timedelta(seconds = sellTime)) if sellTime > 0 else "now")
     packSlots = [bigPlayerData["slot1"], bigPlayerData["slot2"], bigPlayerData["slot3"], bigPlayerData["slot4"]]
     body += "packs:\n"
@@ -467,7 +467,7 @@ async def finishGetExtraPlayerInfo(response):
     body += "hats: \n"
     hatCounts = [0, 0]
     for id in corePlayerData["hats"]:
-        if id != "0":
+        if id != "0" and id in bot_globals.hats:
             hatStatus = corePlayerData["hats"][id]["level"]
             body += "{status} {name}: {n}\n".format(name=bot_globals.hats[id]["name"]["en"], n=corePlayerData["hats"][id]["count"], status="unlocked" if hatStatus else "locked") + bot_globals.safe_split_str
             hatCounts[int(hatStatus)] += 1
@@ -476,7 +476,7 @@ async def finishGetExtraPlayerInfo(response):
     body += "golfers: \n"
     golferCounts = [0, 0]
     for id in corePlayerData["golfers"]:
-        if id != "0" and id != "1":
+        if id != "0" and id != "1" and id in bot_globals.golfers:
             golferStatus = corePlayerData["golfers"][id]["level"]
             body += "{status} {name}: {n}\n".format(name=bot_globals.golfers[id]["name"]["en"], n=corePlayerData["golfers"][id]["count"], status="unlocked" if hatStatus else "locked") + bot_globals.safe_split_str
             golferCounts[int(golferStatus)] += 1

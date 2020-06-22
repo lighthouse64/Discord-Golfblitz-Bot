@@ -12,6 +12,7 @@ import requests
 from threading import Thread
 from bs4 import BeautifulSoup
 import zipfile
+import re
 import commandhandler #bot commands
 
 confPath = os.path.join(sys.path[0], "configuration")
@@ -80,7 +81,18 @@ def argParser(raw_args):
     return new_args
 
 async def sendCommand(ws, message, discord_message):
-    messagedetails = message[1:].split(" ")
+    message = re.sub(r"[“”’„]", "\"", message)
+    messagedetails = message[1:].split()
+    startingQuote = False
+    startingIndex = 0
+    for i, m in enumerate(messagedetails):
+        if m.startswith("\"") or m.startswith('\''):
+            startingQuote = m[0]
+            startingIndex = i
+        if startingQuote and m.endswith(startingQuote):
+            startingQuote = False
+            messagedetails[startingIndex] = " ".join(messagedetails[startingIndex:i+1])[1:-1]
+    print(messagedetails)
     print("Command sent: ", message)
     if messagedetails[0] in commandhandler.commands:
         try:
