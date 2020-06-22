@@ -75,8 +75,6 @@ async def finishCommand(ws, responseJson, offlineData=False):
     else:
         responseJson = offlineData
     try:
-        if "extra_data_modifier" in request_args:
-            request_args["extra_data_modifier"](ws, request_args, sendback_info, responseJson)
         if "prev_function_data" in request_args:
             request_args["prev_function_data"].append(responseJson)
             responseJson = request_args["prev_function_data"]
@@ -89,7 +87,7 @@ async def finishCommand(ws, responseJson, offlineData=False):
         if "json" in request_args:
             response = json.dumps(responseJson)
         else:
-            response = await requestInfo[0](responseJson)
+            response = await requestInfo[0](responseJson, request_args)
         await sendMessage(ws, response, sendback_info, request_args)
     except:
         await directlySendMessage(ws, "the command failed when processing the output\nDetails:\n" + traceback.format_exc(), sendback_info)
@@ -193,7 +191,7 @@ def discordTable(elemList, changeDict={}, orderList=[], numbered=True, rowSegmen
         header += " "
     table = []
     for elem in elemList:
-        line = "#" + str(len(table)) + " " if numbered else ""
+        line = "#" + str(len(table) + 1) + " " if numbered else ""
         for key in orderList:
             line += str(elem[key]) + " "
         table.append(line)
@@ -233,7 +231,7 @@ def genRewardStr(i, rewards):
         rewardStr += " & "
     return rewardStr
 
-async def finishGetChallenge(response):
+async def finishGetChallenge(response, args):
     print(response)
     challenge_data = response[1]["data"]
     current_event_data = challenge_data["current_event"]
@@ -289,7 +287,7 @@ async def info(ws, args, message_object):
         groupPrefix = bot_globals.group_configs[groupId]["prefix"]
     await sendMessage(ws, (bot_globals.info_msg_head, bot_globals.info_msg.format(prefix=groupPrefix)), message_object, args)
 
-async def finishGetLeaderboard(response):
+async def finishGetLeaderboard(response, args):
     if "error" in response:
         return ("There was an error with the leaderboard request:", json.dumps(response))
     leaderboardData = response["data"]
@@ -341,7 +339,7 @@ async def getLeaderboard(ws, args, message_object):
         baseReq["offset"] = args["offset"]
     await sendGolfblitzWs(ws, finishGetLeaderboard if not "stats" in args else finishGetLeaderboardStats, args, message_object, "get_leaderboard", baseReq)
 
-async def finishGetLeaderboardStats(response):
+async def finishGetLeaderboardStats(response, args):
     header = "Leaderboard Statistics"
     entries = response["data"]
     trophyList = []
@@ -409,14 +407,14 @@ async def ping(ws, args, message_object):
     await pong
     await sendMessage(ws, ("pong!", "discord latency: {discord_latency} ms\ngolfblitz latency {golfblitz_latency} ms".format(discord_latency=1000*bot_globals.global_bot.latency, golfblitz_latency=1000*(time.time() - start))), message_object, args)
 
-async def finishGetExtraPlayerInfo(response):
+async def finishGetExtraPlayerInfo(response, args):
     smallPlayerData = response[0]["scriptData"]["data"]
     playerId = smallPlayerData["player_id"] #Note: this attribute does not actually exist by default.  a previous part of the code should have created it
     head = smallPlayerData["display_name"] + " " + str(int(smallPlayerData["trophies"]))
     body = "basic player details:\n"
     body += "team: " + smallPlayerData["team_name"][4:] + "\n"
     body += "last logged in {0} from now\n".format(datetime.timedelta(seconds=time.time() - smallPlayerData["last_login"]/1000))
-    body += "player attributes:\nlevel: {level}\npower: {power}\nspeed: {speed}\naccuracy: {accuracy}\ncooldown: {cooldown}\n".format(level=smallPlayerData["level"], power=smallPlayerData["attr"]["attr_pwr"], speed=smallPlayerData["attr"]["attr_speed"], accuracy=smallPlayerData["attr"]["attr_acc"], cooldown=smallPlayerData["attr"]["attr_cool"])
+    body += "player attributes:\nlevel: {level}\npower: {power}, speed: {speed}, accuracy: {accuracy}, cooldown: {cooldown}\n".format(level=smallPlayerData["level"], power=smallPlayerData["attr"]["attr_pwr"], speed=smallPlayerData["attr"]["attr_speed"], accuracy=smallPlayerData["attr"]["attr_acc"], cooldown=smallPlayerData["attr"]["attr_cool"])
     stats = smallPlayerData["stats"]
     body += "player stats:\nswishes: {swishes}\nnumber of games played: {gamesplayed}\nwin rate: {winrate}%\nhighest trophies: {highscore}\nbest season rank: {bestrank}\n".format(swishes=stats["swishes"], gamesplayed=stats["gamesplayed"], winrate=100*stats["wins"]/stats["gamesplayed"], highscore=stats["highesttrophies"], bestrank=stats["highestseasonrank"])
     body += bot_globals.safe_split_str
@@ -443,47 +441,46 @@ async def finishGetExtraPlayerInfo(response):
     sellTime = bigPlayerData["token_time"]/1000 - time.time()
     body += "player can sell cards {0}\n".format("in " + str(datetime.timedelta(seconds = sellTime)) if sellTime > 0 else "now")
     packSlots = [bigPlayerData["slot1"], bigPlayerData["slot2"], bigPlayerData["slot3"], bigPlayerData["slot4"]]
-    body += "packs:\n"
-    starpack = bigPlayerData["pinpack"]
-    body += "star pack: "
-    if starpack["available_time"]/1000 > time.time():
-        body += "will be available in {timedelta}\n".format(timedelta=datetime.timedelta(seconds = starpack["available_time"]/1000 - time.time()))
-    else:
-        body += "{n} / 10 stars\n".format(n=starpack["pin_count"])
+    body += "packs slots: "
     for i, pack in enumerate(packSlots):
-        packStr = "slot {n}: {packType}".format(n=i+1, packType=bot_globals.cardpacks[pack["type"]] if pack["type"] != -1 else "empty slot")
+        packStr = "{n} - {packType}".format(n=i+1, packType=bot_globals.cardpacks[pack["type"]] if pack["type"] != -1 else "empty")
         if pack["unlocking"]:
             timechg = pack["available_time"]/1000 - time.time()
             packStr += " (currently being unlocked, will be available in {timestr})".format(timestr=datetime.timedelta(seconds = timechg)) if timechg > 0 else "(the pack is now available to open)"
-        body += packStr + "\n"
+        if i < len(packSlots) - 1:
+            body += packStr + ", "
+    body += "\n"
+    starpack = bigPlayerData["pinpack"]
+    body += "star pack: "
+    if starpack["available_time"]/1000 > time.time():
+        body += "available in {timedelta}\n".format(timedelta=datetime.timedelta(seconds = starpack["available_time"]/1000 - time.time()))
+    else:
+        body += "{n} / 10 stars\n".format(n=starpack["pin_count"])
     body += bot_globals.safe_split_str
-    body += "powerups: \n"
+    body += "\npowerups:\n"
     powerups = corePlayerData["cards"]
-    for id in powerups:
+    for id in sorted(powerups):
         if id != "0":
             powerup = powerups[id]
-            body += "level {lvl} {powerup}: accuracy {attr_acc}, speed {attr_speed}, power {attr_pwr}\n".format(powerup=bot_globals.powerups[id]["name"]["en"], lvl=powerup["level"], attr_acc=powerup["attr_acc"], attr_speed=powerup["attr_speed"], attr_pwr=powerup["attr_pwr"])
+            if powerup["level"] < 12:
+                body += "level {lvl} {powerup}: accuracy {attr_acc}, speed {attr_speed}, power {attr_pwr}\n".format(powerup=bot_globals.powerups[id]["name"]["en"], lvl=powerup["level"], attr_acc=powerup["attr_acc"], attr_speed=powerup["attr_speed"], attr_pwr=powerup["attr_pwr"])
+            else:
+                body += "level {lvl} {powerup}\n".format(powerup=bot_globals.powerups[id]["name"]["en"], lvl=powerup["level"])
     body += bot_globals.safe_split_str
-    body += "hats: \n"
-    hatCounts = [0, 0]
+    body += "\nnotable hats: \n"
     for id in corePlayerData["hats"]:
-        if id != "0" and id in bot_globals.hats:
-            hatStatus = corePlayerData["hats"][id]["level"]
-            body += "{status} {name}: {n}\n".format(name=bot_globals.hats[id]["name"]["en"], n=corePlayerData["hats"][id]["count"], status="unlocked" if hatStatus else "locked") + bot_globals.safe_split_str
-            hatCounts[int(hatStatus)] += 1
-    body += "total number of locked hats: " + str(hatCounts[0]) + "\n"
-    body += "total number of unlocked hats: " + str(hatCounts[1]) + "\n" + bot_globals.safe_split_str
-    body += "golfers: \n"
-    golferCounts = [0, 0]
+        if id in bot_globals.hats and bot_globals.hats[id]["rarity"] >= 4:
+            body += bot_globals.hats[id]["name"]["en"] + "\n"
+        elif not id in bot_globals.hats:
+            body += "UNKNOWN HAT with id " + str(id) + "\n"
+    body += "\nnotable golfers: \n"
     for id in corePlayerData["golfers"]:
-        if id != "0" and id != "1" and id in bot_globals.golfers:
-            golferStatus = corePlayerData["golfers"][id]["level"]
-            body += "{status} {name}: {n}\n".format(name=bot_globals.golfers[id]["name"]["en"], n=corePlayerData["golfers"][id]["count"], status="unlocked" if hatStatus else "locked") + bot_globals.safe_split_str
-            golferCounts[int(golferStatus)] += 1
-    body += "total number of locked golfers: " + str(golferCounts[0]) + "\n"
-    body += "total number of unlocked golfers: " + str(golferCounts[1]) + "\n" + bot_globals.safe_split_str
+        if id in bot_globals.golfers and bot_globals.golfers[id]["rarity"] >= 4:
+            body += bot_globals.golfers[id]["name"]["en"] + "\n"
+        elif not id in bot_globals.golfers:
+            body += "UNKNOWN GOLFER with id " + str(id) + "\n"
     if "emotes" in corePlayerData:
-        body += "emotes: \n"
+        body += "\nemotes: \n"
         for id in corePlayerData["emotes"]:
             emoteStr = ""
             emoteObj = bot_globals.emotes[id]
@@ -493,7 +490,7 @@ async def finishGetExtraPlayerInfo(response):
                 emoteStr = emoteObj["loc"]["en"] + " animated emote"
             body += emoteStr + "\n" + bot_globals.safe_split_str
         body += "total number of emotes: {n}\n".format(n=len(corePlayerData["emotes"])) + bot_globals.safe_split_str
-    body += "daily deals:\n"
+    body += "\ndaily deals:\n"
     for deal in bigPlayerData["daily_deals"]:
         if deal == "time":
             body += "time until the deals reset: " + str(datetime.timedelta(seconds=time.time() - bigPlayerData["daily_deals"][deal]/1000)) + "\n"
@@ -550,7 +547,7 @@ async def getPlayerInfo(ws, args, message_object):
     bot_globals.pending_requests[reqId] = ("THIS SHOULD NOT BE HAPPENING", message_object, "playerinfo", args) #this function shouldn't trigger any "response function"
     return
 
-async def finishGetTeamInfo(response):
+async def finishGetTeamInfo(response, args):
     if type(response) is list:
         response = response[0]
     teamMetadata = response["scriptData"]
@@ -570,6 +567,8 @@ async def finishGetTeamInfo(response):
                 body += nameRef[card]["name"]["en"] + ": " + str(cards[card]["count"]) + "\n" + bot_globals.safe_split_str
                 total += cards[card]["count"]
             body += "total " + cardtype + " cards: " + str(total) + "\n"
+    if "cardpool" in args:
+        return (header, body)
     body += "members:\n"
     for member in teamData["members"]:
         print("STUFF", member["scriptData"], "\n")

@@ -33,11 +33,17 @@ default_help_msg = '''Global Arguments:
 * -json (only works on discord)
 * -pages <number or start_page-end_page or all>,<page_elem>,...
 
+Important syntax notes:
+* the [] characters around an option are there to indicate that it is optional
+* the <> characters are used to represent the place where you are supposed to put in the appropriate information
+* remember that you need to use "-" characters in front of your command args
+
 Commands:
 '''
 command_help_page = {
 "getchallenge": ("getchallenge help page", '''Get 1v1 challenge event details for the current event or for a past event.
 Usage: getchallenge [-event <event name>]
+
 Arguments:
 * event (optional) - the event name from listchallenges
 '''),
@@ -47,11 +53,16 @@ Arguments: none
 '''),
 "help": ("help help page", '''Get detailed information about how to use a command.
 Usage: help [-command <command>]
+
 Arguments:
 * command (optional) - the command that you want to get more detailed information about
+
+Examples:
+~help -command help (get this page)
 '''),
 "leaderboard": ("leaderboard help page", '''Get a leaderboard of teams or individuals that has up to 1000 entries.
 Usage: leaderboard": "[-count <number (max is 1000)>] [-country <country accronym>] [-offset <number>] [-season <number>] [-team]
+
 Command Aliases:
 * ranks
 Arguments (all are optional):
@@ -60,6 +71,9 @@ Arguments (all are optional):
 * offset - start the leaderboard entries after the given rank offset value
 * season - which season this leaderboard applies to
 * team - show the leaderboard for teams instead of the leaderboard for individual players
+
+Examples:
+~leaderboard -count 222 -offset 5 -season 20 -country US (this gets the US local season 20 leaderboard of size 222 starting from rank 6)
 '''),
 "leaderboardstats": ("leaderboardstats help page", '''Get the statistics for a given leaderboard selection.
 See the leaderboard help page for usage specifications.
@@ -74,22 +88,34 @@ Arguments: none
 '''),
 "playerinfo": ("playerinfo help page", '''Get very detailed information about a player
 Usage: playerinfo [-code <friend code>] or [-id <player uuid>] or [-rank <number>] [-country <country>]
+
 Arguments (you must specify the code, id, or rank):
 * code - the player's friend code
 * id - the player's uuid (should be 24 characters long)
 * rank - the player's ranking in the leaderboard
 * country - changes the leaderboard to the local leaderboard of the country specified (only works with the rank argument)
+
+Examples:
+~playerinfo -code BR3TT (get the information for the player who has the friend code BR3TT)
+~playerinfo -country JP -rank 1 (get information for the top player in Japan)
 '''),
 "setprefix": ("setprefix help page", '''Set the bot's command prefix for your group (you must have enough permissions to do so)
 Usage: setprefix": "-prefix <prefix str>
+
 Arguments:
 * prefix - the string of the prefix
+
+Examples:
+~setprefix ! (sets the prefix to "!")
 '''),
 "teaminfo": ("teaminfo help page", '''Get detailed information about a team
 Usage: teaminfo [-id <team id>] or [-name <team name>]
 Arguments:
 * id - the team's uuid (should be 24 characters long)
 * name - the team's name
+
+Examples:
+~teaminfo -name "Example Team" (gets the team information for the team named Example Team)
 '''),
 "verifyaccount": ("verifyaccount help page", '''Link up your golf blitz and discord accounts
 Usage: verifyaccount -id <id of other client>
@@ -98,12 +124,18 @@ Arguments:
 ''')
 }
 command_help_page["ranks"] = command_help_page["leaderboard"]
-info_msg_head = "Golfblitz Bot Information Page"
+info_msg_head = "Golfblitz Bot Information Page\n" + "-" * 30
 info_msg = '''This bot was created by lighthouse64#5760.
-prefix: {prefix}
-Add this bot to your server by using this link: https://discord.com/api/oauth2/authorize?client_id=720685363026198532&permissions=67488832&scope=bot
-You can also add the bot as a friend and send commands to it in a friendly lobby.  Its friend code is g33ykw.
-The bot testing server is at https://discord.gg/eaddU2c
+This bot allows you to view enhanced leaderboard control, team information, and player data.  You can save these results to a json file for later parsing, too.  This bot works on both golf blitz and discord.  To talk to it on discord, use the invite link.  If you want to talk to it on golf blitz, add it as a friend and then join a friendly lobby with it.
+
+Bot Information
+---------------
+group prefix: {prefix}
+link: https://discord.com/api/oauth2/authorize?client_id=720685363026198532&permissions=67488832&scope=bot
+friend code: g33ykw
+github: https://github.com/lighthouse64/Discord-Golfblitz-Bot
+testing server discord https://discord.gg/eaddU2c
+
 If you have any comments or concerns, contact me on discord.
 '''
 for command in command_short_descriptions:
