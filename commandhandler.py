@@ -85,7 +85,7 @@ async def finishCommand(ws, responseJson, offlineData=False):
             await nextFunction(ws, request_args, sendback_info)
             return
         if "json" in request_args:
-            response = json.dumps(responseJson)
+            response = json.dumps(responseJson, ensure_ascii=False)
         else:
             response = await requestInfo[0](responseJson, request_args)
         await sendMessage(ws, response, sendback_info, request_args)
@@ -302,16 +302,17 @@ async def finishGetLeaderboard(response, args):
     return ("Season {seasonNum} leaderboard\n{tableHeader}".format(seasonNum=leaderboardData[0]["LAST-SEASON" if isTeamData else "SEASON"], tableHeader=tableData[0]), tableData[1])
 
 async def getLeaderboard(ws, args, message_object):
+    if "teams" in args:
+        args["team"] = args["teams"]
     baseReq = requests["get_leaderboard"].copy()
     isTeam = False
     shortCodeParts = []
     if "count" in args:
-        baseReq["entryCount"] = min(1000, int(args["count"]))
+        baseReq["entryCount"] = min(2000, int(args["count"]))
     #build the short code
-    if "type" in args:
-        if "team" in args:
-            shortCodeParts.append("TEAM_TROPHIES_LEADERBOARD")
-            isTeam = True
+    if "team" in args:
+        shortCodeParts.append("TEAM_TROPHIES_LEADERBOARD")
+        isTeam = True
     else:
         shortCodeParts.append("INDIVIDUAL_TROPHIES")
 
@@ -563,9 +564,10 @@ async def finishGetTeamInfo(response, args):
             total = 0
             body += cardtype + "(s):\n"
             for card in sorted(cards, key = lambda c: cards[c]["count"], reverse=True):
-                nameRef = bot_globals.golfers if cardtype == "golfer" else bot_globals.hats
-                body += nameRef[card]["name"]["en"] + ": " + str(cards[card]["count"]) + "\n" + bot_globals.safe_split_str
-                total += cards[card]["count"]
+                if cards[card]["count"]:
+                    nameRef = bot_globals.golfers if cardtype == "golfer" else bot_globals.hats
+                    body += nameRef[card]["name"]["en"] + ": " + str(cards[card]["count"]) + "\n" + bot_globals.safe_split_str
+                    total += cards[card]["count"]
             body += "total " + cardtype + " cards: " + str(total) + "\n"
     if "cardpool" in args:
         return (header, body)
@@ -582,17 +584,28 @@ async def getTeamInfo(ws, args, message_object):
         if type(message_object) is dict:
             teamId = message_object["fromId"]
         if "prev_function_data" in args:
-            currData = args["prev_function_data"][0]["scriptData"]
-            if "teams" in currData:
-                teamId = currData["teams"][-1]["teamId"]
+            currData = args["prev_function_data"][0]
+            if currData["@class"] == ".LeaderboardDataResponse":
+                teamId = currData["data"][0]["teamId"]
             else:
-                teamId = currData["data"]["team_id"]
+                currData = currData["scriptData"]
+                if "teams" in currData:
+                    teamId = currData["teams"][-1]["teamId"]
+                else:
+                    teamId = currData["data"]["team_id"]
             args["prev_function_data"].pop()
         elif "name" in args: #we need to search for the team first
             args["next_function"] = getTeamInfo
             baseReq = requests["get_teams"].copy()
             baseReq["NAME"] = args["name"]
             await sendGolfblitzWs(ws, False, args, message_object, "teaminfo", baseReq)
+            return
+        elif "rank" in args:
+            args["team"] = ""
+            args["count"] = 1
+            args["offset"] = int(args["rank"]) - 1
+            args["next_function"] = getTeamInfo
+            await getLeaderboard(ws, args, message_object)
             return
         else:
             authorId = str(message_object.author.id)
