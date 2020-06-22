@@ -26,7 +26,7 @@ friendly_matches = {}
 error_messages = {"insufficient_permissions":"Error: Insufficient Permissions\nYou do not have sufficient permissions to perform this operation.","no_associated_player_id": "Error: No Associated Player Id:\nThe command failed because there is no golf blitz player associated with this account!", "page_not_found": "Error: Page Not Found\nThe page you are requesting does not exist"}
 command_data_path = os.path.join(sys.path[0], "command_data.json")
 command_data = json.load(open(command_data_path, 'r')) if os.path.isfile(command_data_path) else {}
-command_short_descriptions = {"getchallenge": "[-event <event_name>]", "help": "[-command <command name>]", "leaderboard": "[-count <number (max is 2000)>] [-country <country accronym>] [-offset <number>] [-season <number>] [-team]", "leaderboardstats": "same syntax as leaderboard", "listchallenges": "", "playerinfo": "[-code <friend code>] or [-id <player uuid>] or [-rank <number>] [-country <country>]", "setprefix": "-prefix <prefix str>", "teaminfo": "[-id <team id>] or [-name <team name>]", "verifyaccount": "-id <id of other client>"}
+command_short_descriptions = {"getchallenge": "[-event <event_name>]", "help": "[-command <command name>]", "leaderboard": "[-count <number (max is 4000)>] [-country <country accronym>] [-offset <number>] [-season <number>] [-team]", "leaderboardstats": "same syntax as leaderboard", "listchallenges": "", "playerinfo": "[-code <friend code>] or [-id <player uuid>] or [-rank <number>] [-country <country>]", "setprefix": "-prefix <prefix str>", "teaminfo": "[-id <team id>] or [-name <team name>]", "verifyaccount": "-id <id of other client>"}
 default_help_msg_head = "Golf Blitz Bot Help Page"
 default_help_msg = '''Global Arguments:
 * -disable_code_format (only has an effect on discord)
@@ -60,8 +60,8 @@ Arguments:
 Examples:
 ~help -command help (get this page)
 '''),
-"leaderboard": ("leaderboard help page", '''Get a leaderboard of teams or individuals that has up to 2000 entries.
-Usage: leaderboard": "[-count <number (max is 1000)>] [-country <country accronym>] [-offset <number>] [-season <number>] [-team]
+"leaderboard": ("leaderboard help page", '''Get a leaderboard of teams or individuals that has up to 4000 entries.
+Usage: leaderboard": "[-count <number (max is 4000)>] [-country <country accronym>] [-offset <number>] [-season <number>] [-team]
 
 Command Aliases:
 * ranks

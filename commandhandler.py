@@ -308,7 +308,7 @@ async def getLeaderboard(ws, args, message_object):
     isTeam = False
     shortCodeParts = []
     if "count" in args:
-        baseReq["entryCount"] = min(2000, int(args["count"]))
+        baseReq["entryCount"] = min(10000, int(args["count"]))
     #build the short code
     if "team" in args:
         shortCodeParts.append("TEAM_TROPHIES_LEADERBOARD")
@@ -448,8 +448,7 @@ async def finishGetExtraPlayerInfo(response, args):
         if pack["unlocking"]:
             timechg = pack["available_time"]/1000 - time.time()
             packStr += " (currently being unlocked, will be available in {timestr})".format(timestr=datetime.timedelta(seconds = timechg)) if timechg > 0 else "(the pack is now available to open)"
-        if i < len(packSlots) - 1:
-            body += packStr + ", "
+        body += packStr + (", " if i < len(packSlots) - 1 else "")
     body += "\n"
     starpack = bigPlayerData["pinpack"]
     body += "star pack: "
@@ -559,15 +558,21 @@ async def finishGetTeamInfo(response, args):
     body += "required trophies: " + str(teamMetadata["teamrequiredtrophies"]) + "\n"
     if "teamCards" in teamMetadata:
         body += "team cardpool:\n"
+        n = 1
         for cardtype in teamMetadata["teamCards"]:
             cards = teamMetadata["teamCards"][cardtype]
             total = 0
             body += cardtype + "(s):\n"
+            cardStr = ""
             for card in sorted(cards, key = lambda c: cards[c]["count"], reverse=True):
                 if cards[card]["count"]:
                     nameRef = bot_globals.golfers if cardtype == "golfer" else bot_globals.hats
-                    body += nameRef[card]["name"]["en"] + ": " + str(cards[card]["count"]) + "\n" + bot_globals.safe_split_str
+                    cardStr += nameRef[card]["name"]["en"] + ": " + str(cards[card]["count"]) + ", "
                     total += cards[card]["count"]
+                    if not n % 2:
+                        body += cardStr[:-2] + "\n" + bot_globals.safe_split_str
+                        cardStr = ""
+                    n += 1
             body += "total " + cardtype + " cards: " + str(total) + "\n"
     if "cardpool" in args:
         return (header, body)
