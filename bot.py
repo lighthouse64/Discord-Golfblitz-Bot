@@ -23,6 +23,7 @@ bot = bot_globals.global_bot
 default_ws = False
 lastDownloadablesTimeCheck = 0
 connecting = False
+lastChatMessageId = False
 
 #tasks
 heartbeat_task = False
@@ -122,7 +123,9 @@ async def onGolfblitzMessage(ws, msgJson):
         if teamid in bot_globals.group_configs and "prefix" in bot_globals.group_configs[teamid]:
             local_prefix = bot_globals.group_configs[teamid]["prefix"]
         msgcontent = msgdetails["msg"]
-        if teamid in bot_globals.group_configs and not msgcontent.startswith(local_prefix):
+        if msgcontent.startswith(local_prefix):
+            await sendCommand(ws, msgcontent, msgJson)
+        elif teamid in bot_globals.group_configs and not "messageId" in msgJson or msgJson["messageId"] != lastChatMessageId:
             if "linkedGroups" in bot_globals.group_configs[teamid]:
                 for groupId, channelId in bot_globals.group_configs[teamid]["linkedGroups"]:
                     if len(str(groupId)) == 18: # send to discord
@@ -133,8 +136,8 @@ async def onGolfblitzMessage(ws, msgJson):
                             channelMsgs  = await textChannel.history(limit=1).flatten()
                         channelMsg = channelMsgs[0]
                         await commandhandler.sendMessage(ws, ("**" + msgJson["who"] + "**:", msgcontent), channelMsg, {"disable_code_format": True})
-        elif msgcontent.startswith(local_prefix):
-            await sendCommand(ws, msgcontent, msgJson)
+                        if "messageId" in msgJson:
+                            lastChatMessageId = msgJson["messageId"]
     return
 
 async def recv_all(ws):
