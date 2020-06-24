@@ -372,7 +372,7 @@ async def linkChat(ws, args, message_object):
     isGolfblitzMessage = type(message_object) is dict
     userId = message_object["fromId"] if isGolfblitzMessage else str(message_object.author.id)
     if not get_verification(userId):
-        sendMessage(ws, ("You need to have a verified account for this command", ""), message_object, args)
+        await sendMessage(ws, ("You need to have a verified account for this command", ""), message_object, args)
         return
     currGroupId = message_object["teamId"] if isGolfblitzMessage else message_object.guild.id
     linkGroupId = args["groupid"]
