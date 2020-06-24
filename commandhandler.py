@@ -104,7 +104,7 @@ async def sendMessage(ws, message, message_object, request_args, arg_aliases={})
     disableCodeFormat = "disable_code_format" in request_args or isGolfblitzMessage
     pagesToSend = message
     if not "json" in request_args:
-        header = message[0] + "\n"
+        header = message[0] + "\n\n"
         message = message[1].split(bot_globals.safe_split_str)
         maxpagelen = (5000 if isGolfblitzMessage else (2000 if disableCodeFormat else 1991)) - len(header)
         pages = []
@@ -298,7 +298,11 @@ async def finishGetLeaderboard(response, args):
             isTeamData = True
         else:
             break
-    tableData = discordTable(leaderboardData, changeDict={"LAST-SCORE" if isTeamData else "SCORE": "trophies", "rank": "#", "LAST-COUNTRY": "COUNTRY"}, orderList= ["rank", "teamName", "LAST-COUNTRY", "LAST-SCORE"] if isTeamData else ["rank", "userName", "COUNTRY", "SCORE"], numbered=False)
+    tableData = False
+    try:
+        tableData = discordTable(leaderboardData, changeDict={"LAST-SCORE" if isTeamData else "SCORE": "trophies", "rank": "#", "LAST-COUNTRY": "COUNTRY"}, orderList= ["rank", "teamName", "LAST-COUNTRY", "LAST-SCORE"] if isTeamData else ["rank", "userName", "COUNTRY", "SCORE"], numbered=False)
+    except IndexError:
+        return ("Error: empty leaderboard", "There was no data to display.")
     return ("Season {seasonNum} leaderboard\n{tableHeader}".format(seasonNum=leaderboardData[0]["LAST-SEASON" if isTeamData else "SEASON"], tableHeader=tableData[0]), tableData[1])
 
 async def getLeaderboard(ws, args, message_object):
@@ -398,8 +402,7 @@ async def listChallenges(ws, args, message_object):
     events.sort(reverse=True)
     outStr = "Challenge events:\n"
     for event in events:
-        print(event)
-        outStr += "* " + event[1] + "event started at " + (time.asctime(time.gmtime(int(event[0]))) + " GMT" if event[0] else "no specific time") + "\n"
+        outStr += "* " + event[1] + " event started at " + (time.asctime(time.gmtime(int(event[0]))) + " GMT" if event[0] else "no specific time") + "\n"
     await directlySendMessage(ws, outStr, message_object)
 
 async def ping(ws, args, message_object):
@@ -413,11 +416,12 @@ async def finishGetExtraPlayerInfo(response, args):
     playerId = smallPlayerData["player_id"] #Note: this attribute does not actually exist by default.  a previous part of the code should have created it
     head = smallPlayerData["display_name"] + " " + str(int(smallPlayerData["trophies"]))
     body = "basic player details:\n"
-    body += "team: " + smallPlayerData["team_name"][4:] + "\n"
-    body += "last logged in {0} from now\n".format(datetime.timedelta(seconds=time.time() - smallPlayerData["last_login"]/1000))
-    body += "player attributes:\nlevel: {level}\npower: {power}, speed: {speed}, accuracy: {accuracy}, cooldown: {cooldown}\n".format(level=smallPlayerData["level"], power=smallPlayerData["attr"]["attr_pwr"], speed=smallPlayerData["attr"]["attr_speed"], accuracy=smallPlayerData["attr"]["attr_acc"], cooldown=smallPlayerData["attr"]["attr_cool"])
+    body += "team: " + smallPlayerData["team_name"][4:] + "(id: " + smallPlayerData["team_id"] + ")\n"
+    body += "last logged in {0} ago\n".format(datetime.timedelta(seconds=time.time() - smallPlayerData["last_login"]/1000))
+    body += "hat: " + bot_globals.hats[str(smallPlayerData["hat"])]["name"]["en"] + ", golfer: " + bot_globals.golfers[str(smallPlayerData["golfer"])]["name"]["en"] + "\n"
+    body += "\nplayer attributes:\nlevel: {level}\npower: {power}, speed: {speed}, accuracy: {accuracy}, cooldown: {cooldown}\n".format(level=smallPlayerData["level"], power=smallPlayerData["attr"]["attr_pwr"], speed=smallPlayerData["attr"]["attr_speed"], accuracy=smallPlayerData["attr"]["attr_acc"], cooldown=smallPlayerData["attr"]["attr_cool"])
     stats = smallPlayerData["stats"]
-    body += "player stats:\nswishes: {swishes}\nnumber of games played: {gamesplayed}\nwin rate: {winrate}%\nhighest trophies: {highscore}\nbest season rank: {bestrank}\n".format(swishes=stats["swishes"], gamesplayed=stats["gamesplayed"], winrate=100*stats["wins"]/stats["gamesplayed"], highscore=stats["highesttrophies"], bestrank=stats["highestseasonrank"])
+    body += "\nplayer stats:\nswishes: {swishes}\nnumber of games played: {gamesplayed}\nwin rate: {winrate}%\nhighest trophies: {highscore}\nbest season rank: {bestrank}\n".format(swishes=stats["swishes"], gamesplayed=stats["gamesplayed"], winrate=100*stats["wins"]/stats["gamesplayed"] if stats["gamesplayed"] else 0, highscore=stats["highesttrophies"], bestrank=stats["highestseasonrank"])
     body += bot_globals.safe_split_str
     if not smallPlayerData["team_id"]:
         if playerId:
@@ -447,7 +451,7 @@ async def finishGetExtraPlayerInfo(response, args):
         packStr = "{n} - {packType}".format(n=i+1, packType=bot_globals.cardpacks[pack["type"]] if pack["type"] != -1 else "empty")
         if pack["unlocking"]:
             timechg = pack["available_time"]/1000 - time.time()
-            packStr += " (currently being unlocked, will be available in {timestr})".format(timestr=datetime.timedelta(seconds = timechg)) if timechg > 0 else "(the pack is now available to open)"
+            packStr += " (currently being unlocked, available in {timestr})".format(timestr=datetime.timedelta(seconds = timechg)) if timechg > 0 else "(ready to open)"
         body += packStr + (", " if i < len(packSlots) - 1 else "")
     body += "\n"
     starpack = bigPlayerData["pinpack"]
@@ -459,7 +463,7 @@ async def finishGetExtraPlayerInfo(response, args):
     body += bot_globals.safe_split_str
     body += "\npowerups:\n"
     powerups = corePlayerData["cards"]
-    for id in sorted(powerups):
+    for id in sorted(powerups.keys(), key=lambda k: int(k)):
         if id != "0":
             powerup = powerups[id]
             if powerup["level"] < 12:

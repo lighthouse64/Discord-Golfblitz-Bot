@@ -210,6 +210,7 @@ async def getResponses(ws):
             if "requestId" in responseJson and responseJson["requestId"] in bot_globals.pending_requests:
                 await commandhandler.finishCommand(ws, responseJson)
             elif "requestId" in responseJson and responseJson["requestId"] == "keepalive":
+                print(responseJson)
                 bot_globals.curr_season = responseJson["scriptData"]["current_season"]["seasonnumber"]
                 print("keepalive request was received")
             elif responseJson["@class"] == ".SessionTerminatedMessage":
