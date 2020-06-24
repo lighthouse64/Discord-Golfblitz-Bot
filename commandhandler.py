@@ -557,32 +557,27 @@ async def finishGetTeamInfo(response, args):
     teamMetadata = response["scriptData"]
     teamData = response["teams"][0]
     header = "{name} {trophies} (id: {id})".format(name=teamData["teamName"][4:], trophies=int(teamMetadata["teamcurrenttrophies"]), id=teamData["teamId"])
-    body = teamMetadata["desc"] + "\nowner: " + teamData["owner"]["displayName"] + "\n"
+    body = teamMetadata["desc"] + "owner: " + teamData["owner"]["displayName"] + "\n"
     body += "location: " + teamMetadata["teamlocation"] + "\n"
     body += "required trophies: " + str(teamMetadata["teamrequiredtrophies"]) + "\n"
     if "teamCards" in teamMetadata:
         body += "team cardpool:\n"
-        n = 1
         for cardtype in teamMetadata["teamCards"]:
+            n = 1
             cards = teamMetadata["teamCards"][cardtype]
             total = 0
             body += cardtype + "(s):\n"
-            cardStr = ""
             for card in sorted(cards, key = lambda c: cards[c]["count"], reverse=True):
                 if cards[card]["count"]:
                     nameRef = bot_globals.golfers if cardtype == "golfer" else bot_globals.hats
-                    cardStr += nameRef[card]["name"]["en"] + ": " + str(cards[card]["count"]) + ", "
+                    body += "* " + nameRef[card]["name"]["en"] + ": " + str(cards[card]["count"]) + "\n"
                     total += cards[card]["count"]
-                    if not n % 2:
-                        body += cardStr[:-2] + "\n" + bot_globals.safe_split_str
-                        cardStr = ""
-                    n += 1
             body += "total " + cardtype + " cards: " + str(total) + "\n"
     if "cardpool" in args:
         return (header, body)
     body += "members:\n"
     for member in teamData["members"]:
-        print("STUFF", member["scriptData"], "\n")
+        #print("STUFF", member["scriptData"], "\n")
         body += "{name} {trophies} friend code: {code}, id: {id}\n".format(name=member["displayName"], trophies=int(member["scriptData"]["data"]["trophies"]), code=member["scriptData"]["invite_code"] if "invite_code" in member["scriptData"] else "none", id=member["id"]) + bot_globals.safe_split_str
 
     return (header, body)
@@ -631,6 +626,7 @@ async def getTeamInfo(ws, args, message_object):
     baseReq = requests["get_team_data"].copy()
     baseReq["teamId"] = teamId
     await sendGolfblitzWs(ws, finishGetTeamInfo, args, message_object, "teaminfo", baseReq)
+    return
 
 async def setPrefix(ws, args, message_object):
     isGolfblitzMessage =  type(message_object) is dict
@@ -648,6 +644,7 @@ async def setPrefix(ws, args, message_object):
     if not groupId in bot_globals.group_configs:
         bot_globals.group_configs[groupId] = {}
     bot_globals.group_configs[groupId]["prefix"] = args["prefix"] if args["prefix"] != "default" else "~"
+    json.dump(bot_globals.group_configs, open(bot_globals.group_configs_path, 'w'))
     await sendMessage(ws, ("", "the prefix is now: " + args["prefix"]), message_object, args)
 
 async def verifyAccount(ws, args, message_object):

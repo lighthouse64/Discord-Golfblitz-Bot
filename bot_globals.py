@@ -132,7 +132,7 @@ This bot allows you to view enhanced leaderboard control, team information, and 
 Bot Information
 ---------------
 group prefix: {prefix}
-link: https://discord.com/api/oauth2/authorize?client_id=720685363026198532&permissions=67488832&scope=bot
+bot invite link: https://discord.com/api/oauth2/authorize?client_id=720685363026198532&permissions=67488832&scope=bot
 friend code: g33ykw
 github: https://github.com/lighthouse64/Discord-Golfblitz-Bot
 testing server discord https://discord.gg/eaddU2c
