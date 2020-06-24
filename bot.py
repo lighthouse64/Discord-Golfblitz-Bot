@@ -128,6 +128,9 @@ async def onGolfblitzMessage(ws, msgJson):
                     if len(str(groupId)) == 18: # send to discord
                         textChannel = bot.get_channel(channelId)
                         channelMsgs = await textChannel.history(limit=1).flatten()
+                        if not channelMsgs:
+                            await textChannel.send("first", delete_after=0)
+                            channelMsgs  = await textChannel.history(limit=1).flatten()
                         channelMsg = channelMsgs[0]
                         await commandhandler.sendMessage(ws, ("**" + msgJson["who"] + "**:", msgcontent), channelMsg, {"disable_code_format": True})
         if msgcontent.startswith(local_prefix):
