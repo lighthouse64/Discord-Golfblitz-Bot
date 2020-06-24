@@ -133,8 +133,9 @@ async def onGolfblitzMessage(ws, msgJson):
                             channelMsgs  = await textChannel.history(limit=1).flatten()
                         channelMsg = channelMsgs[0]
                         await commandhandler.sendMessage(ws, ("**" + msgJson["who"] + "**:", msgcontent), channelMsg, {"disable_code_format": True})
-        if msgcontent.startswith(local_prefix):
+        elif msgcontent.startswith(local_prefix):
             await sendCommand(ws, msgcontent, msgJson)
+    return
 
 async def recv_all(ws):
     messages = []
