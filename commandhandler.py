@@ -391,7 +391,13 @@ async def linkChat(ws, args, message_object):
     if not "linkedGroups" in linkGroupConfig:
         linkGroupConfig["linkedGroups"] = [[currGroupId, textChannelId]]
     else:
-        linkGroupConfig["linkedGroups"].append([currGroupId, textChannelId])
+        toAppend = True
+        for link in linkGroupConfig["linkedGroups"]:
+            if textChannelId == link[1]:
+                toAppend = False
+                break
+        if toAppend:
+            linkGroupConfig["linkedGroups"].append([currGroupId, textChannelId])
     json.dump(bot_globals.group_configs, open(bot_globals.group_configs_path, 'w'))
     await sendMessage(ws, ("Success", "This group will now receive messages from the other group that you just linked"), message_object, args)
 
