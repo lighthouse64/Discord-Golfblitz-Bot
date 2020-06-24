@@ -250,7 +250,7 @@ async def finishGetChallenge(response, args):
             timeleft = datetime.timedelta(seconds = timedelta)
         header += "Event time left: " + str(timeleft)
     header = header.rstrip()
-    outmsg = "\nAmateur Rewards:\n"
+    outmsg = "Amateur Rewards:\n"
     for i, rewards in enumerate(current_event_data["tiers"]["amateur"]["prize"]):
         outmsg += genRewardStr(i, rewards)[:-3] + "\n"
     outmsg += "\nPro Rewards:\n"
@@ -416,7 +416,7 @@ async def finishGetExtraPlayerInfo(response, args):
     playerId = smallPlayerData["player_id"] #Note: this attribute does not actually exist by default.  a previous part of the code should have created it
     head = smallPlayerData["display_name"] + " " + str(int(smallPlayerData["trophies"]))
     body = "basic player details:\n"
-    body += "team: " + smallPlayerData["team_name"][4:] + "(id: " + smallPlayerData["team_id"] + ")\n"
+    body += "team: " + smallPlayerData["team_name"][4:] + ("(id: " + smallPlayerData["team_id"] + ")" if smallPlayerData["team_id"] else "none")+"\n"
     body += "last logged in {0} ago\n".format(datetime.timedelta(seconds=time.time() - smallPlayerData["last_login"]/1000))
     body += "hat: " + bot_globals.hats[str(smallPlayerData["hat"])]["name"]["en"] + ", golfer: " + bot_globals.golfers[str(smallPlayerData["golfer"])]["name"]["en"] + "\n"
     body += "\nplayer attributes:\nlevel: {level}\npower: {power}, speed: {speed}, accuracy: {accuracy}, cooldown: {cooldown}\n".format(level=smallPlayerData["level"], power=smallPlayerData["attr"]["attr_pwr"], speed=smallPlayerData["attr"]["attr_speed"], accuracy=smallPlayerData["attr"]["attr_acc"], cooldown=smallPlayerData["attr"]["attr_cool"])
@@ -510,6 +510,9 @@ async def getExtraPlayerInfo(ws, args, message_object):
         baseReq = requests["get_team_data"].copy()
         baseReq["teamId"] = teamId
         await sendGolfblitzWs(ws, finishGetExtraPlayerInfo, args, message_object, "none", baseReq)
+    else:
+        message = await finishGetExtraPlayerInfo(args["prev_function_data"], args)
+        await sendMessage(ws, message, message_object, args)
     return
 
 async def getPlayerInfo(ws, args, message_object):
