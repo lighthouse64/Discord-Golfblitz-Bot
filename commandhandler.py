@@ -375,12 +375,12 @@ async def linkChat(ws, args, message_object):
         sendMessage(ws, ("You need to have a verified account for this command", ""), message_object, args)
         return
     currGroupId = message_object["teamId"] if isGolfblitzMessage else message_object.guild.id
-    linkGroupId = args["group_id"]
-    textChannelId = "channel_id" in args
+    linkGroupId = args["groupid"]
+    textChannelId = "channelid" in args
     if isGolfblitzMessage:
-        textChannelId = args["channel_id"] if textChannelId else bot_globals.global_bot.get_guild(int(linkGroupId)).text_channels[0].id
+        textChannelId = args["channelid"] if textChannelId else bot_globals.global_bot.get_guild(int(linkGroupId)).text_channels[0].id
     else:
-        textChannelId = args["channel_id"] if textChannelId else message_object.guild.text_channels[0].id
+        textChannelId = args["channelid"] if textChannelId else message_object.guild.text_channels[0].id
     textChannelId = int(textChannelId)
     if len(linkGroupId) != 18 and isGolfblitzMessage or len(linkGroupId) != 24 and not isGolfblitzMessage:
         sendMessage(ws, ("Invalid group id", ""), message_object, args)
