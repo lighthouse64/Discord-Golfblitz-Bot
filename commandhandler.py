@@ -393,6 +393,7 @@ async def linkChat(ws, args, message_object):
     else:
         linkGroupConfig["linkedGroups"].append([currGroupId, textChannelId])
     json.dump(bot_globals.group_configs, open(bot_globals.group_configs_path, 'w'))
+    await sendMessage(ws, ("Success", "This group will now receive messages from the other group that you just linked"), message_object, args)
 
 async def listChallenges(ws, args, message_object):
     events = []
