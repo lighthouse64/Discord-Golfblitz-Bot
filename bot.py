@@ -194,10 +194,12 @@ async def gbconnect():
 async def keepalive(ws):
     global lastDownloadablesTimeCheck, default_ws
     while True:
-        if time.time() - lastDownloadablesTimeCheck > 7200:
+        if time.time() - lastDownloadablesTimeCheck > 9600:
+            print("checking for new assets")
             Thread(target=bgDownloadAssets).start()
             await ws.send(json.dumps(commandhandler.requests["get_extra_assets"]))
             lastDownloadablesTimeCheck = time.time()
+            await commandhandler.getChallenge(ws, {"noreply": True}, {})
         try:
             await ws.ping()
             await ws.send(json.dumps(commandhandler.requests["get_current_season"]))

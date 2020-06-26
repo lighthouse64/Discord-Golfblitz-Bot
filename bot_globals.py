@@ -26,17 +26,17 @@ friendly_matches = {}
 error_messages = {"insufficient_permissions":"Error: Insufficient Permissions\nYou do not have sufficient permissions to perform this operation.","no_associated_player_id": "Error: No Associated Player Id:\nThe command failed because there is no golf blitz player associated with this account!", "page_not_found": "Error: Page Not Found\nThe page you are requesting does not exist"}
 command_data_path = os.path.join(sys.path[0], "command_data.json")
 command_data = json.load(open(command_data_path, 'r')) if os.path.isfile(command_data_path) else {}
-command_short_descriptions = {"getchallenge": "[-event <event_name>]", "help": "[-command <command name>]", "leaderboard": "[-count <number (max is 10000)>] [-country <country accronym>] [-offset <number>] [-season <number>] [-team]", "leaderboardstats": "same syntax as leaderboard", "listchallenges": "", "playerinfo": "[-code <friend code>] or [-id <player uuid>] or [-rank <number>] [-country <country>]", "setprefix": "-prefix <prefix str>", "teaminfo": "[-id <team id>] or [-name <team name>]", "verifyaccount": "-id <id of other client>"}
+command_short_descriptions = {"getchallenge": "[-event <event_name>]", "help": "[-command <command name>]", "leaderboard": "[-count <number (max is 10000)>] [-country <country accronym>] [-offset <number>] [-season <number>] [-team]", "leaderboardstats": "same syntax as leaderboard", "listchallenges": "", "playerinfo": "[-code <friend code>] or [-id <player uuid>] or [-rank <number>] [-country <country>] [-allcards]", "setprefix": "-prefix <prefix str>", "teaminfo": "[-id <team id>] or [-name <team name>] or [-rank <leaderboard rank>] [-showcardpool]", "teamsearch": "-name <team name>", "verifyaccount": "-id <id of other client>"}
 default_help_msg_head = "Golf Blitz Bot Help Page"
 default_help_msg = '''Global Arguments:
-* -disable_code_format (only has an effect on discord)
-* -json (only works on discord)
-* -pages <number or start_page-end_page or all>,<page_elem>,...
+  * -json (only works on discord)
+  * -pages or -page <number or start_page-end_page or all>,<page_elem>,...
+  * -noformat (only has an effect on discord, removes the code formatting around the output)
 
 Important syntax notes:
-* the [] characters around an option are there to indicate that it is optional
-* the <> characters are used to represent the place where you are supposed to put in the appropriate information
-* remember that you need to use "-" characters in front of your command args
+  * the [] characters around an option are there to indicate that it is optional
+  * the <> characters are used to represent the place where you are supposed to put in the appropriate information
+  * remember that you need to use "-" characters in front of your command args
 
 Commands:
 '''
@@ -45,7 +45,7 @@ command_help_page = {
 Usage: getchallenge [-event <event name>]
 
 Arguments:
-* event (optional) - the event name from listchallenges
+  * event (optional) - the event name from listchallenges
 '''),
 "info": ("info help page", '''Display information about the bot.
 Usage: info
@@ -55,7 +55,7 @@ Arguments: none
 Usage: help [-command <command>]
 
 Arguments:
-* command (optional) - the command that you want to get more detailed information about
+  * command (optional) - the command that you want to get more detailed information about
 
 Examples:
 ~help -command help (get this page)
@@ -64,13 +64,13 @@ Examples:
 Usage: leaderboard": "[-count <number (max is 10000)>] [-country <country accronym>] [-offset <number>] [-season <number>] [-team]
 
 Command Aliases:
-* ranks
+  * ranks
 Arguments (all are optional):
-* count - the number of entries in the leaderboard
-* country - get the leaderboard for a specified country using its two letter accronym
-* offset - start the leaderboard entries after the given rank offset value
-* season - which season this leaderboard applies to
-* team - show the leaderboard for teams instead of the leaderboard for individual players
+  * count - the number of entries in the leaderboard
+  * country - get the leaderboard for a specified country using its two letter accronym
+  * offset - start the leaderboard entries after the given rank offset value
+  * season - which season this leaderboard applies to
+  * team - show the leaderboard for teams instead of the leaderboard for individual players
 
 Examples:
 ~leaderboard -count 222 -offset 5 -season 20 -country US (this gets the US local season 20 leaderboard of size 222 starting from rank 6)
@@ -87,13 +87,14 @@ Usage: ping
 Arguments: none
 '''),
 "playerinfo": ("playerinfo help page", '''Get very detailed information about a player
-Usage: playerinfo [-code <friend code>] or [-id <player uuid>] or [-rank <number>] [-country <country>]
+Usage: playerinfo [-code <friend code>] or [-id <player uuid>] or [-rank <number>] [-country <country>] [-allcards]
 
 Arguments (you must specify the code, id, or rank):
-* code - the player's friend code
-* id - the player's uuid (should be 24 characters long)
-* rank - the player's ranking in the leaderboard
-* country - changes the leaderboard to the local leaderboard of the country specified (only works with the rank argument)
+  * code - the player's friend code
+  * id - the player's uuid (should be 24 characters long)
+  * rank - the player's ranking in the leaderboard
+  * country - changes the leaderboard to the local leaderboard of the country specified (only works with the rank argument)
+  * allcards - toggles whether or not this command will output all of the cards that the specified player has
 
 Examples:
 ~playerinfo -code BR3TT (get the information for the player who has the friend code BR3TT)
@@ -103,25 +104,32 @@ Examples:
 Usage: setprefix": "-prefix <prefix str>
 
 Arguments:
-* prefix - the string of the prefix
+  * prefix - the string of the prefix
 
 Examples:
 ~setprefix ! (sets the prefix to "!")
 '''),
 "teaminfo": ("teaminfo help page", '''Get detailed information about a team
-Usage: teaminfo [-id <team id>] or [-name <team name>]
+Usage: teaminfo [-id <team id>] or [-name <team name>] or [-rank <leaderboard rank>] [-showcardpool]
 Arguments:
-* id - the team's uuid (should be 24 characters long)
-* name - the team's name
+  * id - the team's uuid (should be 24 characters long)
+  * name - the team's name
+  * rank - the rank that the team is in a given leaderboard
+  * showcardpool - toggles whether or not this command will display the team's cardpool
 
 Examples:
 ~teaminfo -name "Example Team" (gets the team information for the team named Example Team)
 ~teaminfo -rank 1 -country DE (gets the top team from Deutschland)
 '''),
+"teamsearch": ("teamsearch help page", '''Search for a team
+Usage: teamsearch -name <team name>
+Arguments
+  * name - the team's name
+'''),
 "verifyaccount": ("verifyaccount help page", '''Link up your golf blitz and discord accounts
 Usage: verifyaccount -id <id of other client>
 Arguments:
-* id - if you are on discord, this is your golf blitz uuid.  if you are on golf blitz, this is your discord id.
+  * id - if you are on discord, this is your golf blitz uuid.  if you are on golf blitz, this is your discord id.
 ''')
 }
 command_help_page["ranks"] = command_help_page["leaderboard"]
@@ -140,7 +148,7 @@ testing server discord https://discord.gg/eaddU2c
 If you have any comments or concerns, contact me on discord.
 '''
 for command in command_short_descriptions:
-    default_help_msg += "* " + command + " " + command_short_descriptions[command] + "\n"
+    default_help_msg += "  * " + command + " " + command_short_descriptions[command] + "\n"
 strings = {}
 hats = {}
 golfers = {}

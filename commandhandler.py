@@ -88,7 +88,8 @@ async def finishCommand(ws, responseJson, offlineData=False):
             response = json.dumps(responseJson, ensure_ascii=False)
         else:
             response = await requestInfo[0](responseJson, request_args)
-        await sendMessage(ws, response, sendback_info, request_args)
+        if not "noreply" in request_args:
+            await sendMessage(ws, response, sendback_info, request_args)
     except:
         await directlySendMessage(ws, "the command failed when processing the output\nDetails:\n" + traceback.format_exc(), sendback_info)
         #print("REQUEST INFORMATION", requestInfo)
@@ -101,10 +102,10 @@ async def sendMessage(ws, message, message_object, request_args, arg_aliases={})
     for arg in arg_aliases:
         if arg in request_args and not arg_aliases[arg] in request_args:
             request_args[arg_aliases[arg]] = request_args[arg]
-    disableCodeFormat = "disable_code_format" in request_args or isGolfblitzMessage
+    disableCodeFormat = "noformat" in request_args or isGolfblitzMessage
     pagesToSend = message
     if not "json" in request_args:
-        header = message[0] + "\n\n"
+        header = message[0] + "\n\n" if message[0] else ""
         message = message[1].split(bot_globals.safe_split_str)
         maxpagelen = (5000 if isGolfblitzMessage else (2000 if disableCodeFormat else 1991)) - len(header)
         pages = []
@@ -205,7 +206,7 @@ def discordTable(elemList, changeDict={}, orderList=[], numbered=True, rowSegmen
     return (header, tableStr)
 
 def genRewardStr(i, rewards):
-    rewardStr = "* win #" + str(i + 1) + " - "
+    rewardStr = "  * win #" + str(i + 1) + " - "
     for reward in rewards:
         if type(rewards[reward]) is dict:
             rewards[reward] = rewards[reward].popitem()
@@ -232,7 +233,7 @@ def genRewardStr(i, rewards):
     return rewardStr
 
 async def finishGetChallenge(response, args):
-    print(response)
+    #print(response)
     challenge_data = response[1]["data"]
     current_event_data = challenge_data["current_event"]
     if not "get_challenge" in bot_globals.command_data:
@@ -244,7 +245,7 @@ async def finishGetChallenge(response, args):
     header = challenge_data["current_event_id"] + "\n"
     if current_event_data["duration"]:
         header += "Event start time: " + time.asctime(time.gmtime(int(current_event_data["start_time"]/1000))) + " GMT\n"
-        timedelta = (current_event_data["start_time"] + current_event_data["duration"])/1000 - time.time()
+        timedelta = round((current_event_data["start_time"] + current_event_data["duration"])/1000 - time.time())
         timeleft = "the event finished"
         if timedelta >= 0:
             timeleft = datetime.timedelta(seconds = timedelta)
@@ -409,8 +410,8 @@ async def listChallenges(ws, args, message_object):
     events.sort(reverse=True)
     outStr = "Challenge events:\n"
     for event in events:
-        outStr += "* " + event[1] + " event started at " + (time.asctime(time.gmtime(int(event[0]))) + " GMT" if event[0] else "no specific time") + "\n"
-    await directlySendMessage(ws, outStr, message_object)
+        outStr += "  * " + event[1] + " event started at " + (time.asctime(time.gmtime(int(event[0]))) + " GMT" if event[0] else "no specific time") + "\n"
+    await sendMessage(ws, ("", outStr), message_object, args)
 
 async def ping(ws, args, message_object):
     start = time.time()
@@ -424,11 +425,11 @@ async def finishGetExtraPlayerInfo(response, args):
     head = smallPlayerData["display_name"] + " " + str(int(smallPlayerData["trophies"]))
     body = "basic player details:\n"
     body += "team: " + smallPlayerData["team_name"][4:] + ("(id: " + smallPlayerData["team_id"] + ")" if smallPlayerData["team_id"] else "none")+"\n"
-    body += "last logged in {0} ago\n".format(datetime.timedelta(seconds=time.time() - smallPlayerData["last_login"]/1000))
+    body += "last logged in {0} ago\n".format(datetime.timedelta(seconds=round(time.time() - smallPlayerData["last_login"]/1000)) if smallPlayerData["last_login"] else " an unknown amount of time")
     body += "hat: " + bot_globals.hats[str(smallPlayerData["hat"])]["name"]["en"] + ", golfer: " + bot_globals.golfers[str(smallPlayerData["golfer"])]["name"]["en"] + "\n"
-    body += "\nplayer attributes:\nlevel: {level}\npower: {power}, speed: {speed}, accuracy: {accuracy}, cooldown: {cooldown}\n".format(level=smallPlayerData["level"], power=smallPlayerData["attr"]["attr_pwr"], speed=smallPlayerData["attr"]["attr_speed"], accuracy=smallPlayerData["attr"]["attr_acc"], cooldown=smallPlayerData["attr"]["attr_cool"])
+    body += "\nplayer attributes:\n  * level: {level}\n  * power: {power}, speed: {speed}\n  * accuracy: {accuracy}\n  * cooldown: {cooldown}\n".format(level=smallPlayerData["level"], power=smallPlayerData["attr"]["attr_pwr"], speed=smallPlayerData["attr"]["attr_speed"], accuracy=smallPlayerData["attr"]["attr_acc"], cooldown=smallPlayerData["attr"]["attr_cool"])
     stats = smallPlayerData["stats"]
-    body += "\nplayer stats:\nswishes: {swishes}\nnumber of games played: {gamesplayed}\nwin rate: {winrate}%\nhighest trophies: {highscore}\nbest season rank: {bestrank}\n".format(swishes=stats["swishes"], gamesplayed=stats["gamesplayed"], winrate=100*stats["wins"]/stats["gamesplayed"] if stats["gamesplayed"] else 0, highscore=stats["highesttrophies"], bestrank=stats["highestseasonrank"])
+    body += "\nplayer stats:\n  * swishes: {swishes}\n  * number of games played: {gamesplayed}\n  * win rate: {winrate}%\n  * highest trophies: {highscore}\n  * best season rank: {bestrank}\n".format(swishes=stats["swishes"], gamesplayed=stats["gamesplayed"], winrate=round(100*stats["wins"]/stats["gamesplayed"], 2) if stats["gamesplayed"] else 0, highscore=stats["highesttrophies"], bestrank=stats["highestseasonrank"])
     body += bot_globals.safe_split_str
     if not smallPlayerData["team_id"]:
         if playerId:
@@ -451,20 +452,19 @@ async def finishGetExtraPlayerInfo(response, args):
     body += "friend code: " + bigPlayerData["invite_code"] + "\n"
     body += "xp: " + str(corePlayerData["xp"]) + "\n"
     sellTime = bigPlayerData["token_time"]/1000 - time.time()
-    body += "player can sell cards {0}\n".format("in " + str(datetime.timedelta(seconds = sellTime)) if sellTime > 0 else "now")
+    body += "player can sell cards {0}\n".format("in " + str(datetime.timedelta(seconds = round(sellTime))) if sellTime > 0 else "now")
     packSlots = [bigPlayerData["slot1"], bigPlayerData["slot2"], bigPlayerData["slot3"], bigPlayerData["slot4"]]
-    body += "packs slots: "
+    body += "packs slots:\n"
     for i, pack in enumerate(packSlots):
-        packStr = "{n} - {packType}".format(n=i+1, packType=bot_globals.cardpacks[pack["type"]] if pack["type"] != -1 else "empty")
+        packStr = "  * {n} - {packType}".format(n=i+1, packType=bot_globals.cardpacks[pack["type"]] if pack["type"] != -1 else "empty")
         if pack["unlocking"]:
             timechg = pack["available_time"]/1000 - time.time()
-            packStr += " (currently being unlocked, available in {timestr})".format(timestr=datetime.timedelta(seconds = timechg)) if timechg > 0 else "(ready to open)"
-        body += packStr + (", " if i < len(packSlots) - 1 else "")
-    body += "\n"
+            packStr += " (currently being unlocked, available in {timestr})".format(timestr=datetime.timedelta(seconds = round(timechg))) if timechg > 0 else "(ready to open)"
+        body += packStr + "\n"
     starpack = bigPlayerData["pinpack"]
     body += "star pack: "
     if starpack["available_time"]/1000 > time.time():
-        body += "available in {timedelta}\n".format(timedelta=datetime.timedelta(seconds = starpack["available_time"]/1000 - time.time()))
+        body += "available in {timedelta}\n".format(timedelta=datetime.timedelta(seconds = round(starpack["available_time"]/1000 - time.time())))
     else:
         body += "{n} / 10 stars\n".format(n=starpack["pin_count"])
     body += bot_globals.safe_split_str
@@ -474,20 +474,21 @@ async def finishGetExtraPlayerInfo(response, args):
         if id != "0":
             powerup = powerups[id]
             if powerup["level"] < 12:
-                body += "level {lvl} {powerup}: accuracy {attr_acc}, speed {attr_speed}, power {attr_pwr}\n".format(powerup=bot_globals.powerups[id]["name"]["en"], lvl=powerup["level"], attr_acc=powerup["attr_acc"], attr_speed=powerup["attr_speed"], attr_pwr=powerup["attr_pwr"])
+                body += "  * level {lvl} {powerup}: accuracy {attr_acc}, speed {attr_speed}, power {attr_pwr}\n".format(powerup=bot_globals.powerups[id]["name"]["en"], lvl=powerup["level"], attr_acc=powerup["attr_acc"], attr_speed=powerup["attr_speed"], attr_pwr=powerup["attr_pwr"])
             else:
-                body += "level {lvl} {powerup}\n".format(powerup=bot_globals.powerups[id]["name"]["en"], lvl=powerup["level"])
+                body += "  * level {lvl} {powerup}\n".format(powerup=bot_globals.powerups[id]["name"]["en"], lvl=powerup["level"])
     body += bot_globals.safe_split_str
-    body += "\nnotable hats: \n"
+    showAllCards = "allcards" in args
+    body += "\nhats:\n" if showAllCards else "\nnotable hats: \n"
     for id in corePlayerData["hats"]:
-        if id in bot_globals.hats and bot_globals.hats[id]["rarity"] >= 4:
-            body += bot_globals.hats[id]["name"]["en"] + "\n"
+        if id in bot_globals.hats and bot_globals.hats[id]["rarity"] >= 4 or showAllCards:
+            body += "  * " + bot_globals.hats[id]["name"]["en"] + " x" + str(corePlayerData["hats"][id]["count"]) + (" (unlocked)" if corePlayerData["hats"][id]["level"] else " (locked)") + "\n" + bot_globals.safe_split_str
         elif not id in bot_globals.hats:
             body += "UNKNOWN HAT with id " + str(id) + "\n"
-    body += "\nnotable golfers: \n"
+    body += "\ngolfers:\n" if showAllCards else "\nnotable golfers: \n"
     for id in corePlayerData["golfers"]:
-        if id in bot_globals.golfers and bot_globals.golfers[id]["rarity"] >= 4:
-            body += bot_globals.golfers[id]["name"]["en"] + "\n"
+        if id in bot_globals.golfers and bot_globals.golfers[id]["rarity"] >= 4 or showAllCards:
+            body += "  * " + bot_globals.golfers[id]["name"]["en"] + " x" + str(corePlayerData["golfers"][id]["count"]) + (" (unlocked)" if corePlayerData["golfers"][id]["level"] else " (locked)") + "\n" + bot_globals.safe_split_str
         elif not id in bot_globals.golfers:
             body += "UNKNOWN GOLFER with id " + str(id) + "\n"
     if "emotes" in corePlayerData:
@@ -499,15 +500,15 @@ async def finishGetExtraPlayerInfo(response, args):
                 emoteStr = emoteObj["text"]["en"] + " dialog emote"
             else:
                 emoteStr = emoteObj["loc"]["en"] + " animated emote"
-            body += emoteStr + "\n" + bot_globals.safe_split_str
+            body += "  * " + emoteStr + "\n" + bot_globals.safe_split_str
         body += "total number of emotes: {n}\n".format(n=len(corePlayerData["emotes"])) + bot_globals.safe_split_str
     body += "\ndaily deals:\n"
     for deal in bigPlayerData["daily_deals"]:
         if deal == "time":
-            body += "time until the deals reset: " + str(datetime.timedelta(seconds=time.time() - bigPlayerData["daily_deals"][deal]/1000)) + "\n"
+            body += "time until the deals reset: " + str(datetime.timedelta(seconds=round(time.time() - bigPlayerData["daily_deals"][deal]/1000))) + "\n"
         else:
             deal = bigPlayerData["daily_deals"][deal]
-            body += "{item} {type} x{num} for {cost} gems\n".format(item=bot_globals.golfers[deal["identifier"]]["name"]["en"] if deal["type"] == "golfer" else bot_globals.hats[deal["identifier"]]["name"]["en"], type=deal["type"], num=deal["count"], cost=deal["cost"])
+            body += "{item} {type} x{num} for {cost} gems\n".format(item=bot_globals.golfers[deal["identifier"]]["name"]["en"] if deal["type"] == "golfer" else (bot_globals.hats[deal["identifier"]]["name"]["en"] if deal["type"] == "hat" else bot_globals.powerups[deal["identifier"]]["name"]["en"]), type=deal["type"], num=deal["count"], cost=deal["cost"])
     return (head, body)
 
 async def getExtraPlayerInfo(ws, args, message_object):
@@ -518,7 +519,10 @@ async def getExtraPlayerInfo(ws, args, message_object):
         baseReq["teamId"] = teamId
         await sendGolfblitzWs(ws, finishGetExtraPlayerInfo, args, message_object, "none", baseReq)
     else:
-        message = await finishGetExtraPlayerInfo(args["prev_function_data"], args)
+        if "json" in args:
+            message = json.dumps(args["prev_function_data"])
+        else:
+            message = await finishGetExtraPlayerInfo(args["prev_function_data"], args)
         await sendMessage(ws, message, message_object, args)
     return
 
@@ -571,24 +575,25 @@ async def finishGetTeamInfo(response, args):
     body += "location: " + teamMetadata["teamlocation"] + "\n"
     body += "required trophies: " + str(teamMetadata["teamrequiredtrophies"]) + "\n"
     if "teamCards" in teamMetadata:
-        body += "team cardpool:\n"
-        for cardtype in teamMetadata["teamCards"]:
-            n = 1
-            cards = teamMetadata["teamCards"][cardtype]
-            total = 0
-            body += cardtype + "(s):\n"
-            for card in sorted(cards, key = lambda c: cards[c]["count"], reverse=True):
-                if cards[card]["count"]:
-                    nameRef = bot_globals.golfers if cardtype == "golfer" else bot_globals.hats
-                    body += "* " + nameRef[card]["name"]["en"] + ": " + str(cards[card]["count"]) + "\n"
-                    total += cards[card]["count"]
-            body += "total " + cardtype + " cards: " + str(total) + "\n"
-    if "cardpool" in args:
-        return (header, body)
-    body += "members:\n"
+        body += "\nteam cardpool:\n"
+        if "showcardpool" in args:
+            for cardtype in teamMetadata["teamCards"]:
+                n = 1
+                cards = teamMetadata["teamCards"][cardtype]
+                total = 0
+                body += cardtype + "(s):\n"
+                for card in sorted(cards, key = lambda c: cards[c]["count"], reverse=True):
+                    if cards[card]["count"]:
+                        nameRef = bot_globals.golfers if cardtype == "golfer" else bot_globals.hats
+                        body += "  * " + nameRef[card]["name"]["en"] + ": " + str(cards[card]["count"]) + "\n" + bot_globals.safe_split_str
+                        total += cards[card]["count"]
+                body += "total " + cardtype + " cards: " + str(total) + "\n"
+        else:
+            body += "use the -cardpool argument to show the team cardpool"
+    body += "\nmembers:\n"
     for member in teamData["members"]:
         #print("STUFF", member["scriptData"], "\n")
-        body += "{name} {trophies} friend code: {code}, id: {id}\n".format(name=member["displayName"], trophies=int(member["scriptData"]["data"]["trophies"]), code=member["scriptData"]["invite_code"] if "invite_code" in member["scriptData"] else "none", id=member["id"]) + bot_globals.safe_split_str
+        body += "    * {name} {trophies} friend code: {code}, id: {id}\n".format(name=member["displayName"], trophies=int(member["scriptData"]["data"]["trophies"]), code=member["scriptData"]["invite_code"] if "invite_code" in member["scriptData"] else "none", id=member["id"]) + bot_globals.safe_split_str
 
     return (header, body)
 
@@ -638,6 +643,19 @@ async def getTeamInfo(ws, args, message_object):
     await sendGolfblitzWs(ws, finishGetTeamInfo, args, message_object, "teaminfo", baseReq)
     return
 
+async def finishTeamSearch(response, args):
+    head = ""
+    body = "Search results: \n"
+    for team in response["scriptData"]["teams"]:
+        body += "  * " + team["teamName"].replace("--", " ") + " " + str(team["trophies"]) + " {0}/50 members (team id: {1})\n".format(team["members"], team["teamId"])
+    return (head, body)
+
+async def teamSearch(ws, args, message_object):
+    baseReq = requests["get_teams"].copy()
+    if "name" in args:
+        baseReq["NAME"] = args["name"]
+    await sendGolfblitzWs(ws, finishTeamSearch, args, message_object, "teamsearch", baseReq)
+
 async def setPrefix(ws, args, message_object):
     isGolfblitzMessage =  type(message_object) is dict
     if not has_permissions(message_object):
@@ -684,4 +702,4 @@ async def verifyAccount(ws, args, message_object):
         await directlySendMessage(ws, needsVerificationMsg, message_object)
     json.dump(bot_globals.user_configs, open(bot_globals.user_configs_path, 'w'))
 
-commands = {"getchallenge": getChallenge, "info": info, "help": help, "leaderboard": getLeaderboard, "leaderboardstats": getLeaderboardStats, "linkchat": linkChat, "listchallenges": listChallenges, "ping": ping, "playerinfo": getPlayerInfo, "ranks": getLeaderboard, "setprefix": setPrefix, "teaminfo": getTeamInfo, "verifyaccount": verifyAccount}
+commands = {"getchallenge": getChallenge, "info": info, "help": help, "leaderboard": getLeaderboard, "leaderboardstats": getLeaderboardStats, "linkchat": linkChat, "listchallenges": listChallenges, "ping": ping, "playerinfo": getPlayerInfo, "ranks": getLeaderboard, "setprefix": setPrefix, "teaminfo": getTeamInfo, "teamsearch": teamSearch, "verifyaccount": verifyAccount}
