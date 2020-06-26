@@ -111,20 +111,27 @@ async def sendMessage(ws, message, message_object, request_args, arg_aliases={})
         pages = []
         currPage = ("" if disableCodeFormat else "```\n") + header
         for part in message:
+            partWasAlreadyAdded = False
+            print("PART", len(part))
             if len(part) > maxpagelen: #we have to do ugly page cuts to preserve order.
                 cutoffIndex = maxpagelen - len(currPage)
                 currPage += part[:cutoffIndex]
                 pages.append(currPage if disableCodeFormat else currPage + "\n```")
                 for i in range(cutoffIndex, len(part), maxpagelen): #make separate pages for each segment that is too long
-                    currPage = ("" if disableCodeFormat else "```\n") + header + part[i:i+maxpagelen]
-                    if len(currPage) == maxpagelen + len(header) + 4:
+                    pageSegment = part[i:i+maxpagelen]
+                    currPage = ("" if disableCodeFormat else "```\n") + header + pageSegment
+                    if len(pageSegment) == maxpagelen:
                         pages.append(currPage if disableCodeFormat else currPage + "\n```")
-            elif len(part) + len(currPage) > maxpagelen:
+                partWasAlreadyAdded = True
+            elif len(part) + len(currPage) >= maxpagelen:
                 pages.append(currPage if disableCodeFormat else currPage + "\n```")
                 currPage = ("" if disableCodeFormat else "```\n") + header
-            currPage += part
+            if not partWasAlreadyAdded:
+                currPage += part
         pages.append(currPage if disableCodeFormat else currPage + "\n```")
         pageArgs = request_args["pages"].split(",") if "pages" in request_args and request_args["pages"] else "1"
+        for page in pages:
+            print("PAGE LENGTH", len(page))
         pagesToSend = [False] * len(pages)
         for arg in pageArgs:
             if arg == "all":
@@ -647,7 +654,7 @@ async def finishTeamSearch(response, args):
     head = ""
     body = "Search results: \n"
     for team in response["scriptData"]["teams"]:
-        body += "  * " + team["teamName"].replace("--", " ") + " " + str(team["trophies"]) + " {0}/50 members (team id: {1})\n".format(team["members"], team["teamId"])
+        body += "  * " + team["teamName"].replace("--", " ") + " " + str(team["trophies"]) + " {0}/50 members (team id: {1})\n".format(team["members"], team["teamId"]) + bot_globals.safe_split_str
     return (head, body)
 
 async def teamSearch(ws, args, message_object):
