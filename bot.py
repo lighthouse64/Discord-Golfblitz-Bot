@@ -24,6 +24,8 @@ default_ws = False
 lastDownloadablesTimeCheck = 0
 connecting = False
 lastChatMessageId = False
+timeRateLimit = 5
+lastTimeSent = {}
 
 #tasks
 heartbeat_task = False
@@ -73,6 +75,14 @@ def bgDownloadExtraAssets(downloadablesJson):
         config["extraAssetsVersion"] = downloadablesJson["lastModified"]
         json.dump(config, open(os.path.join(confPath, "main-configuration.json"), 'w'))
         bot_globals.update_hats_and_golfers()
+
+def sendMsgWaitTime(player): #rate limit commands
+    global lastTimeSent
+    if not player in lastTimeSent or time.time() - lastTimeSent[player] >= timeRateLimit:
+        lastTimeSent[player] = time.time()
+        return False
+    return round(5 - (time.time() - lastTimeSent[player]), 2)
+
 
 def argParser(raw_args):
     new_args = {}
@@ -125,7 +135,13 @@ async def onGolfblitzMessage(ws, msgJson):
             local_prefix = bot_globals.group_configs[teamid]["prefix"]
         msgcontent = msgdetails["msg"]
         if msgcontent.startswith(local_prefix):
-            await sendCommand(ws, msgcontent, msgJson)
+            waitTime = sendMsgWaitTime(msgJson["fromId"])
+            if not waitTime:
+                await sendCommand(ws, msgcontent, msgJson)
+            else:
+                error = bot_globals.error_messages["commands_too_quick"].split("\n")
+                error[1] = error[1].format(waitTime)
+                await commandhandler.sendMessage(ws, error, msgJson, {})
         elif teamid in bot_globals.group_configs:
             if "linkedGroups" in bot_globals.group_configs[teamid]:
                 for groupId, channelId in bot_globals.group_configs[teamid]["linkedGroups"]:
@@ -277,6 +293,12 @@ async def on_message(message):
                     await commandhandler.sendMessage(default_ws, (message.author.name + ":", message.content), {"teamId": groupId}, {})
     if message.content.startswith(local_prefix):
         print("command sent!", message.content, message.id)
-        await sendCommand(default_ws, message.content, message)
+        waitTime = sendMsgWaitTime(str(message.author.id))
+        if not waitTime:
+            await sendCommand(default_ws, message.content, message)
+        else:
+            error = bot_globals.error_messages["commands_too_quick"].split("\n")
+            error[1] = error[1].format(waitTime)
+            await commandhandler.sendMessage(default_ws, error, message, {})
 
 bot.run(config["bot_token"])
