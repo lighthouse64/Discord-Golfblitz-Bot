@@ -551,6 +551,9 @@ async def getPlayerInfo(ws, args, message_object):
             return
         elif "code" in args:
             data = json.loads(httprequests.post("https://f351468gbswz.live.gamesparks.net/rs/gb_api/S2cypG37waV7wXE2cpSS4lKSRlzzgBZz/LogEventRequest", headers={"content-type": "application/json"}, data=json.dumps({"@class": ".LogEventRequest", "eventKey": "GB_API_PLAYER_INFO", "playerId": "5ccf4984235bac98e46dec48", "requestId": "", "friendcode": args["code"].lower()})).text)
+            if "error" in data: # alert the requester that they asked for a bad friend code
+                await sendMessage(ws, bot_globals.error_messages["invalid_code"].split("\n"), message_object, args)
+                return
             args["prev_function_data"] = [data]
             args["id"] = False # we are going to have to handle this soon
             await getExtraPlayerInfo(ws, args, message_object)
