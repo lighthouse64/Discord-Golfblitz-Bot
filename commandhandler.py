@@ -434,7 +434,7 @@ async def finishGetExtraPlayerInfo(response, args):
     body += "team: " + smallPlayerData["team_name"][4:] + ("(id: " + smallPlayerData["team_id"] + ")" if smallPlayerData["team_id"] else "none")+"\n"
     body += "last logged in {0} ago\n".format(datetime.timedelta(seconds=round(time.time() - smallPlayerData["last_login"]/1000)) if smallPlayerData["last_login"] else " an unknown amount of time")
     body += "hat: " + bot_globals.hats[str(smallPlayerData["hat"])]["name"]["en"] + ", golfer: " + bot_globals.golfers[str(smallPlayerData["golfer"])]["name"]["en"] + "\n"
-    body += "\nplayer attributes:\n  * level: {level}\n  * power: {power}, speed: {speed}\n  * accuracy: {accuracy}\n  * cooldown: {cooldown}\n".format(level=smallPlayerData["level"], power=smallPlayerData["attr"]["attr_pwr"], speed=smallPlayerData["attr"]["attr_speed"], accuracy=smallPlayerData["attr"]["attr_acc"], cooldown=smallPlayerData["attr"]["attr_cool"])
+    body += "\nplayer attributes:\n  * level: {level}\n  * power: {power}\n  * speed: {speed}\n  * accuracy: {accuracy}\n  * cooldown: {cooldown}\n".format(level=smallPlayerData["level"], power=smallPlayerData["attr"]["attr_pwr"], speed=smallPlayerData["attr"]["attr_speed"], accuracy=smallPlayerData["attr"]["attr_acc"], cooldown=smallPlayerData["attr"]["attr_cool"])
     stats = smallPlayerData["stats"]
     body += "\nplayer stats:\n  * swishes: {swishes}\n  * number of games played: {gamesplayed}\n  * win rate: {winrate}%\n  * highest trophies: {highscore}\n  * best season rank: {bestrank}\n".format(swishes=stats["swishes"], gamesplayed=stats["gamesplayed"], winrate=round(100*stats["wins"]/stats["gamesplayed"], 2) if stats["gamesplayed"] else 0, highscore=stats["highesttrophies"], bestrank=stats["highestseasonrank"])
     body += bot_globals.safe_split_str
@@ -445,7 +445,7 @@ async def finishGetExtraPlayerInfo(response, args):
     teamMembers = response[1]["teams"][0]["members"]
     bigPlayerData = False
     for member in teamMembers:
-        if member["id"] == playerId or not playerId and member["displayName"] == smallPlayerData["display_name"] and member["scriptData"]["last_login"] == smallPlayerData["last_login"]:
+        if member["id"] == playerId or member["displayName"].encode('ascii', 'ignore') == smallPlayerData["display_name"].encode('ascii', 'ignore') and member["scriptData"]["last_login"] == smallPlayerData["last_login"]:
             bigPlayerData = member
             break
     if not bigPlayerData: #do this in case the player somehow left the team in the small time fragment that existed between the chain of commands
@@ -488,13 +488,13 @@ async def finishGetExtraPlayerInfo(response, args):
     showAllCards = "allcards" in args
     body += "\nhats:\n" if showAllCards else "\nnotable hats: \n"
     for id in corePlayerData["hats"]:
-        if id in bot_globals.hats and bot_globals.hats[id]["rarity"] >= 4 or showAllCards:
+        if id in bot_globals.hats and (bot_globals.hats[id]["rarity"] >= 4 or showAllCards):
             body += "  * " + bot_globals.hats[id]["name"]["en"] + " x" + str(corePlayerData["hats"][id]["count"]) + (" (unlocked)" if corePlayerData["hats"][id]["level"] else " (locked)") + "\n" + bot_globals.safe_split_str
         elif not id in bot_globals.hats:
             body += "UNKNOWN HAT with id " + str(id) + "\n"
     body += "\ngolfers:\n" if showAllCards else "\nnotable golfers: \n"
     for id in corePlayerData["golfers"]:
-        if id in bot_globals.golfers and bot_globals.golfers[id]["rarity"] >= 4 or showAllCards:
+        if id in bot_globals.golfers and (bot_globals.golfers[id]["rarity"] >= 4 or showAllCards):
             body += "  * " + bot_globals.golfers[id]["name"]["en"] + " x" + str(corePlayerData["golfers"][id]["count"]) + (" (unlocked)" if corePlayerData["golfers"][id]["level"] else " (locked)") + "\n" + bot_globals.safe_split_str
         elif not id in bot_globals.golfers:
             body += "UNKNOWN GOLFER with id " + str(id) + "\n"
