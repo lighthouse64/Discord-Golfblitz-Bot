@@ -482,7 +482,7 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
         if id != "0":
             powerup = powerups[id]
             if powerup["level"] < 12:
-                body += "  * level {lvl} {powerup}: accuracy {attr_acc}, speed {attr_speed}, power {attr_pwr}\n".format(powerup=bot_globals.powerups[id]["name"]["en"], lvl=powerup["level"], attr_acc=round(powerup["attr_acc"]), attr_speed=round(powerup["attr_speed"]), attr_pwr=round(powerup["attr_pwr"]))
+                body += "  * level {lvl} {powerup}: accuracy {attr_acc}, speed {attr_speed}, power {attr_pwr}\n".format(powerup=bot_globals.powerups[id]["name"]["en"], lvl=round(powerup["level"]), attr_acc=round(powerup["attr_acc"]), attr_speed=round(powerup["attr_speed"]), attr_pwr=round(powerup["attr_pwr"]))
             else:
                 body += "  * level {lvl} {powerup}\n".format(powerup=bot_globals.powerups[id]["name"]["en"], lvl=round(powerup["level"]))
     body += bot_globals.safe_split_str
