@@ -14,6 +14,7 @@ if not os.path.exists(extra_assets_path):
     os.makedirs(extra_assets_path)
 curr_season = -1
 extraResponseCount = {"get_current_challenge": 1}
+sortFactors = {"cardssold": False, "level": False, "trophies": False, "winrate" : True} #true/false for whether or not they require more data
 pending_requests = {}
 group_configs_path = os.path.join(configuration_path, "group_configs.json")
 group_configs = json.load(open(group_configs_path, 'r')) if os.path.isfile(group_configs_path) else {}
@@ -26,7 +27,7 @@ friendly_matches = {}
 error_messages = {"insufficient_permissions":"Error: Insufficient Permissions\nYou do not have sufficient permissions to perform this operation.","no_associated_player_id": "Error: No Associated Player Id:\nThe command failed because there is no golf blitz player associated with this account!", "page_not_found": "Error: Page Not Found\nThe page you are requesting does not exist", "commands_too_quick": "Error: You are sending commands too quickly!\nPlease wait {0} more seconds and then try again.", "invalid_code":"Error: Invalid Friend Code\nThe code you entered is either not a valid friend code or does not exist."}
 command_data_path = os.path.join(sys.path[0], "command_data.json")
 command_data = json.load(open(command_data_path, 'r')) if os.path.isfile(command_data_path) else {}
-command_short_descriptions = {"getchallenge": "[-event <event_name>]", "help": "[-command <command name>]", "leaderboard": "[-count <number (max is 10000)>] [-country <country accronym>] [-offset <number>] [-season <number>] [-team]", "leaderboardstats": "same syntax as leaderboard", "listchallenges": "", "playerinfo": "[-code <friend code>] or [-id <player uuid>] or [-rank <number>] [-country <country>] [-allcards]", "setprefix": "-prefix <prefix str>", "teaminfo": "[-id <team id>] or [-name <team name>] or [-rank <leaderboard rank>] [-showcardpool]", "teamsearch": "-name <team name>", "verifyaccount": "-id <id of other client>"}
+command_short_descriptions = {"getchallenge": "[-event <event_name>]", "help": "[-command <command name>]", "leaderboard": "[-count <number (max is 10000)>] [-country <country accronym>] [-offset <number>] [-season <number>] [-team]", "leaderboardstats": "same syntax as leaderboard", "listchallenges": "", "playerinfo": "[-code <friend code>] or [-id <player uuid>] or [-rank <number>] [-country <country>] [-allcards]", "setprefix": "-prefix <prefix str>", "teaminfo": "[-id <team id>] or [-name <team name>] or [-rank <leaderboard rank>] [-showcardpool] [-sort <sort factor>]", "teamsearch": "-name <team name>", "verifyaccount": "-id <id of other client>"}
 default_help_msg_head = "Golf Blitz Bot Help Page"
 default_help_msg = '''Global Arguments:
   * -json (only works on discord)
@@ -58,7 +59,7 @@ Arguments:
   * command (optional) - the command that you want to get more detailed information about
 
 Examples:
-~help -command help (get this page)
+?help -command help (get this page)
 '''),
 "leaderboard": ("leaderboard help page", '''Get a leaderboard of teams or individuals that has up to 10000 entries.
 Usage: leaderboard": "[-count <number (max is 10000)>] [-country <country accronym>] [-offset <number>] [-season <number>] [-team]
@@ -73,7 +74,7 @@ Arguments (all are optional):
   * team - show the leaderboard for teams instead of the leaderboard for individual players
 
 Examples:
-~leaderboard -count 222 -offset 5 -season 20 -country US (this gets the US local season 20 leaderboard of size 222 starting from rank 6)
+?leaderboard -count 222 -offset 5 -season 20 -country US (this gets the US local season 20 leaderboard of size 222 starting from rank 6)
 '''),
 "leaderboardstats": ("leaderboardstats help page", '''Get the statistics for a given leaderboard selection.
 See the leaderboard help page for usage specifications.
@@ -97,8 +98,8 @@ Arguments (you must specify the code, id, or rank):
   * allcards - toggles whether or not this command will output all of the cards that the specified player has
 
 Examples:
-~playerinfo -code BR3TT (get the information for the player who has the friend code BR3TT)
-~playerinfo -country JP -rank 1 (get information for the top player in Japan)
+?playerinfo -code BR3TT (get the information for the player who has the friend code BR3TT)
+?playerinfo -country JP -rank 1 (get information for the top player in Japan)
 '''),
 "setprefix": ("setprefix help page", '''Set the bot's command prefix for your group (you must have enough permissions to do so)
 Usage: setprefix": "-prefix <prefix str>
@@ -107,7 +108,7 @@ Arguments:
   * prefix - the string of the prefix
 
 Examples:
-~setprefix ! (sets the prefix to "!")
+?setprefix ! (sets the prefix to "!")
 '''),
 "teaminfo": ("teaminfo help page", '''Get detailed information about a team
 Usage: teaminfo [-id <team id>] or [-name <team name>] or [-rank <leaderboard rank>] [-showcardpool]
@@ -116,10 +117,17 @@ Arguments:
   * name - the team's name
   * rank - the rank that the team is in a given leaderboard
   * showcardpool - toggles whether or not this command will display the team's cardpool
+  * sort - sorts the team members output by a given factor (by default, this command will sort by trophies)
+
+Sort Factors:
+  * cardssold - sort members by the number of cards that they have sold
+  * level - sort members by what level they are
+  * trophies - sort members by the number of trophies that they have
+  * winrate - sort members by their winrate
 
 Examples:
-~teaminfo -name "Example Team" (gets the team information for the team named Example Team)
-~teaminfo -rank 1 -country DE (gets the top team from Deutschland)
+?teaminfo -name "Example Team" (gets the team information for the team named Example Team)
+?teaminfo -rank 1 -country DE -sort winrate (gets the top team from Deutschland and sorts its team members by their win rate)
 '''),
 "teamsearch": ("teamsearch help page", '''Search for a team
 Usage: teamsearch -name <team name>

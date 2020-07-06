@@ -84,11 +84,10 @@ async def finishCommand(ws, responseJson, offlineData=False):
             del request_args["next_function"]
             await nextFunction(ws, request_args, sendback_info)
             return
-        if "json" in request_args:
+        response = await requestInfo[0](ws, responseJson, request_args, sendback_info)
+        if "json" in request_args and response != "skipJson":
             response = json.dumps(responseJson, ensure_ascii=False)
-        else:
-            response = await requestInfo[0](responseJson, request_args)
-        if not "noreply" in request_args:
+        if response != "skipJson":
             await sendMessage(ws, response, sendback_info, request_args)
     except:
         await directlySendMessage(ws, "the command failed when processing the output\nDetails:\n" + traceback.format_exc(), sendback_info)
@@ -112,7 +111,7 @@ async def sendMessage(ws, message, message_object, request_args, arg_aliases={})
         currPage = ("" if disableCodeFormat else "```\n") + header
         for part in message:
             partWasAlreadyAdded = False
-            print("PART", len(part))
+            #print("PART", len(part))
             if len(part) > maxpagelen: #we have to do ugly page cuts to preserve order.
                 cutoffIndex = maxpagelen - len(currPage)
                 currPage += part[:cutoffIndex]
@@ -239,7 +238,7 @@ def genRewardStr(i, rewards):
         rewardStr += " & "
     return rewardStr
 
-async def finishGetChallenge(response, args):
+async def finishGetChallenge(ws, response, args, message_object):
     #print(response)
     challenge_data = response[1]["data"]
     current_event_data = challenge_data["current_event"]
@@ -295,7 +294,7 @@ async def info(ws, args, message_object):
         groupPrefix = bot_globals.group_configs[groupId]["prefix"]
     await sendMessage(ws, (bot_globals.info_msg_head, bot_globals.info_msg.format(prefix=groupPrefix)), message_object, args)
 
-async def finishGetLeaderboard(response, args):
+async def finishGetLeaderboard(ws, response, args, message_object):
     if "error" in response:
         return ("There was an error with the leaderboard request:", json.dumps(response))
     leaderboardData = response["data"]
@@ -352,7 +351,7 @@ async def getLeaderboard(ws, args, message_object):
         baseReq["offset"] = args["offset"]
     await sendGolfblitzWs(ws, finishGetLeaderboard if not "stats" in args else finishGetLeaderboardStats, args, message_object, "get_leaderboard", baseReq)
 
-async def finishGetLeaderboardStats(response, args):
+async def finishGetLeaderboardStats(ws, response, args, message_object):
     header = "Leaderboard Statistics"
     entries = response["data"]
     trophyList = []
@@ -426,7 +425,7 @@ async def ping(ws, args, message_object):
     await pong
     await sendMessage(ws, ("pong!", "discord latency: {discord_latency} ms\ngolfblitz latency {golfblitz_latency} ms".format(discord_latency=1000*bot_globals.global_bot.latency, golfblitz_latency=1000*(time.time() - start))), message_object, args)
 
-async def finishGetExtraPlayerInfo(response, args):
+async def finishGetExtraPlayerInfo(ws, response, args, message_object):
     smallPlayerData = response[0]["scriptData"]["data"]
     playerId = smallPlayerData["player_id"] #Note: this attribute does not actually exist by default.  a previous part of the code should have created it
     head = smallPlayerData["display_name"] + " " + str(int(smallPlayerData["trophies"]))
@@ -575,11 +574,20 @@ async def getPlayerInfo(ws, args, message_object):
     bot_globals.pending_requests[reqId] = ("THIS SHOULD NOT BE HAPPENING", message_object, "playerinfo", args) #this function shouldn't trigger any "response function"
     return
 
-async def finishGetTeamInfo(response, args):
-    if type(response) is list:
-        response = response[0]
-    teamMetadata = response["scriptData"]
-    teamData = response["teams"][0]
+async def finishGetTeamInfo(ws, response, args, message_object):
+    teamJson = response[0] if type(response) is list else response
+    if not "sort" in args or args["sort"] not in bot_globals.sortFactors:
+        args["sort"] = "trophies"
+    if bot_globals.sortFactors[args["sort"]]:
+        teamMembers = teamJson["teams"][0]["members"]
+        memberIndx = len(response) - 1 if type(response) is list else 0
+        if memberIndx < len(teamMembers):
+            baseReq = requests["get_player_info"].copy()
+            baseReq["player_id"] = teamMembers[memberIndx]["id"]
+            await sendGolfblitzWs(ws, finishGetTeamInfo, args, message_object, "teaminfo", baseReq)
+            return "skipJson"
+    teamMetadata = teamJson["scriptData"]
+    teamData = teamJson["teams"][0]
     header = "{name} {trophies} (id: {id})".format(name=teamData["teamName"][4:], trophies=int(teamMetadata["teamcurrenttrophies"]), id=teamData["teamId"])
     body = teamMetadata["desc"] + "owner: " + teamData["owner"]["displayName"] + "\n"
     body += "location: " + teamMetadata["teamlocation"] + "\n"
@@ -601,10 +609,29 @@ async def finishGetTeamInfo(response, args):
         else:
             body += "use the -cardpool argument to show the team cardpool"
     body += "\nmembers:\n"
-    for member in teamData["members"]:
-        #print("STUFF", member["scriptData"], "\n")
-        body += "    * {name} {trophies} friend code: {code}, id: {id}\n".format(name=member["displayName"], trophies=int(member["scriptData"]["data"]["trophies"]), code=member["scriptData"]["invite_code"] if "invite_code" in member["scriptData"] else "none", id=member["id"]) + bot_globals.safe_split_str
+    memberTableData = []
+    sortFactor = args["sort"]
+    for i, member in enumerate(teamData["members"]):
+        mData = {"name": member["displayName"], "friend code": member["scriptData"]["invite_code"] if "invite_code" in member["scriptData"] else "none", "id": member["id"]}
+        sortFactorData = 0
+        if sortFactor == "trophies":
+            sortFactorData = member["scriptData"]["data"]["trophies"]
+        elif sortFactor == "level":
+            sortFactorData = member["scriptData"]["data"]["level"]
+        elif sortFactor == "winrate":
+            statData = response[i+1]["scriptData"]["data"]["stats"]
+            sortFactorData = round(100 * statData["wins"] / statData["gamesplayed"], 2) if statData["gamesplayed"] else 0
+        elif sortFactor == "cardssold":
+            sortFactorData = member["scriptData"]["data"]["cards_sold"]
+        mData[sortFactor] = sortFactorData
+        memberTableData.append(mData)
 
+    memberTableData.sort(key=lambda k: k[sortFactor], reverse=True)
+    try:
+        tableData = discordTable(memberTableData, changeDict = {"cardssold": "cards_sold"}, orderList = [sortFactor, "name", "friend code", "id"])
+        body += tableData[0] + "\n" + tableData[1] + bot_globals.safe_split_str
+    except:
+        body += "This team has no members.  How lonely :("
     return (header, body)
 
 async def getTeamInfo(ws, args, message_object):
@@ -653,7 +680,7 @@ async def getTeamInfo(ws, args, message_object):
     await sendGolfblitzWs(ws, finishGetTeamInfo, args, message_object, "teaminfo", baseReq)
     return
 
-async def finishTeamSearch(response, args):
+async def finishTeamSearch(ws, response, args, message_object):
     head = ""
     body = "Search results: \n"
     for team in response["scriptData"]["teams"]:
