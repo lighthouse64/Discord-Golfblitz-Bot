@@ -14,7 +14,7 @@ if not os.path.exists(extra_assets_path):
     os.makedirs(extra_assets_path)
 curr_season = -1
 extraResponseCount = {"get_current_challenge": 1}
-sortFactors = {"cardssold": False, "level": False, "trophies": False, "winrate" : True} #true/false for whether or not they require more data
+sortFactors = {"cardssold": False, "lastlogin": False, "level": False, "trophies": False, "winrate" : True} #true/false for whether or not they require more data
 pending_requests = {}
 group_configs_path = os.path.join(configuration_path, "group_configs.json")
 group_configs = json.load(open(group_configs_path, 'r')) if os.path.isfile(group_configs_path) else {}
@@ -57,6 +57,9 @@ Usage: help [-command <command>]
 
 Arguments:
   * command (optional) - the command that you want to get more detailed information about
+
+Argument Aliases:
+  * c <-> command
 
 Examples:
 ?help -command help (get this page)
@@ -111,7 +114,7 @@ Examples:
 ?setprefix ! (sets the prefix to "!")
 '''),
 "teaminfo": ("teaminfo help page", '''Get detailed information about a team
-Usage: teaminfo [-id <team id>] or [-name <team name>] or [-rank <leaderboard rank>] [-showcardpool]
+Usage: teaminfo [-id <team id>] or [-name <team name>] or [-rank <leaderboard rank>] [-showcardpool] [-sort <sort factor>]
 Arguments:
   * id - the team's uuid (should be 24 characters long)
   * name - the team's name
@@ -121,6 +124,7 @@ Arguments:
 
 Sort Factors:
   * cardssold - sort members by the number of cards that they have sold
+  * lastlogin - sort members by the time since they have last logged in
   * level - sort members by what level they are
   * trophies - sort members by the number of trophies that they have
   * winrate - sort members by their winrate

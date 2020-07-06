@@ -275,6 +275,8 @@ async def getChallenge(ws, args, message_object):
         await ws.send(json.dumps(baseReq))
 
 async def help(ws, args, message_object):
+    if "c" in args:
+        args["command"] = args.pop("c")
     if "command" in args:
         if args["command"] in bot_globals.command_help_page:
             await sendMessage(ws, bot_globals.command_help_page[args["command"]], message_object, args)
@@ -528,7 +530,7 @@ async def getExtraPlayerInfo(ws, args, message_object):
         if "json" in args:
             message = json.dumps(args["prev_function_data"])
         else:
-            message = await finishGetExtraPlayerInfo(args["prev_function_data"], args)
+            message = await finishGetExtraPlayerInfo(ws, args["prev_function_data"], args, message_object)
         await sendMessage(ws, message, message_object, args)
     return
 
@@ -607,26 +609,31 @@ async def finishGetTeamInfo(ws, response, args, message_object):
                         total += cards[card]["count"]
                 body += "total " + cardtype + " cards: " + str(total) + "\n"
         else:
-            body += "use the -cardpool argument to show the team cardpool"
+            body += "use the -cardpool argument to show the team cardpool\n"
     body += "\nmembers:\n"
     memberTableData = []
     sortFactor = args["sort"]
+    sortFactorData = sortFactor + "data"
     for i, member in enumerate(teamData["members"]):
         mData = {"name": member["displayName"], "friend code": member["scriptData"]["invite_code"] if "invite_code" in member["scriptData"] else "none", "id": member["id"]}
-        sortFactorData = 0
         if sortFactor == "trophies":
-            sortFactorData = member["scriptData"]["data"]["trophies"]
+            mData[sortFactorData] = round(member["scriptData"]["data"]["trophies"])
+        elif sortFactor == "lastlogin":
+            mData[sortFactorData] = member["scriptData"]["last_login"]
+            mData[sortFactor] = str(datetime.timedelta(seconds=round(time.time() - mData[sortFactorData]/1000))) + " from now"
         elif sortFactor == "level":
-            sortFactorData = member["scriptData"]["data"]["level"]
+            mData[sortFactorData] = member["scriptData"]["data"]["level"]
         elif sortFactor == "winrate":
             statData = response[i+1]["scriptData"]["data"]["stats"]
-            sortFactorData = round(100 * statData["wins"] / statData["gamesplayed"], 2) if statData["gamesplayed"] else 0
+            mData[sortFactorData] = round(100 * statData["wins"] / statData["gamesplayed"], 2) if statData["gamesplayed"] else 0
+            mData[sortFactor] = "{0}% ({1}/{2})".format(mData[sortFactorData], statData["wins"], statData["gamesplayed"])
         elif sortFactor == "cardssold":
-            sortFactorData = member["scriptData"]["data"]["cards_sold"]
-        mData[sortFactor] = sortFactorData
+            mData[sortFactorData] = member["scriptData"]["data"]["cards_sold"]
+        if not sortFactor in mData:
+            mData[sortFactor] = mData[sortFactorData]
         memberTableData.append(mData)
 
-    memberTableData.sort(key=lambda k: k[sortFactor], reverse=True)
+    memberTableData.sort(key=lambda k: k[sortFactorData], reverse=True)
     try:
         tableData = discordTable(memberTableData, changeDict = {"cardssold": "cards_sold"}, orderList = [sortFactor, "name", "friend code", "id"])
         body += tableData[0] + "\n" + tableData[1] + bot_globals.safe_split_str
