@@ -603,7 +603,7 @@ async def finishGetTeamInfo(ws, response, args, message_object):
     body += "required trophies: " + str(teamMetadata["teamrequiredtrophies"]) + "\n"
     if "teamCards" in teamMetadata:
         body += "\nteam cardpool:\n"
-        if "showcardpool" in args:
+        if "showcardpool" in args or "cardpool" in args:
             for cardtype in teamMetadata["teamCards"]:
                 n = 1
                 cards = teamMetadata["teamCards"][cardtype]
@@ -616,7 +616,7 @@ async def finishGetTeamInfo(ws, response, args, message_object):
                         total += cards[card]["count"]
                 body += "total " + cardtype + " cards: " + str(total) + "\n"
         else:
-            body += "use the -cardpool argument to show the team cardpool\n"
+            body += "use the -showcardpool argument to show the team cardpool\n"
     body += "\nmembers:\n"
     memberTableData = []
     sortFactor = args["sort"]
