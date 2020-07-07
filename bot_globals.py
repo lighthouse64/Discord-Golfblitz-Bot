@@ -14,7 +14,7 @@ if not os.path.exists(extra_assets_path):
     os.makedirs(extra_assets_path)
 curr_season = -1
 extraResponseCount = {"get_current_challenge": 1}
-sortFactors = {"cardssold": False, "lastlogin": False, "level": False, "trophies": False, "winrate" : True} #true/false for whether or not they require more data
+sortFactors = {"cardssold": False, "lastlogin": False, "level": False, "swishes": True, "trophies": False, "winrate" : True} #true/false for whether or not they require more data
 pending_requests = {}
 group_configs_path = os.path.join(configuration_path, "group_configs.json")
 group_configs = json.load(open(group_configs_path, 'r')) if os.path.isfile(group_configs_path) else {}
@@ -126,6 +126,7 @@ Sort Factors:
   * cardssold - sort members by the number of cards that they have sold
   * lastlogin - sort members by the time since they have last logged in
   * level - sort members by what level they are
+  * swishes - sort members by the total number of swishes they have made
   * trophies - sort members by the number of trophies that they have
   * winrate - sort members by their winrate
 

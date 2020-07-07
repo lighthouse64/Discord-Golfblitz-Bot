@@ -32,6 +32,8 @@ async def finishDiscordCommand(response, message, request_args):
 async def finishGolfblitzCommand(ws, response, message, request_args):
     reqsToSend = []
     messageobj = {"type": "chat"}
+    if not "teamId" in message: #the bot doesn't know where to send the info
+        return
     groupId = message["teamId"]
     isTeamMessage = len(groupId) == 24
     baseReq = requests["send_team_chat_message"] if isTeamMessage else requests["send_friendly_chat_message"]
@@ -437,7 +439,10 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
     body += "hat: " + bot_globals.hats[str(smallPlayerData["hat"])]["name"]["en"] + ", golfer: " + bot_globals.golfers[str(smallPlayerData["golfer"])]["name"]["en"] + "\n"
     body += "\nplayer attributes:\n  * level: {level}\n  * power: {power}\n  * speed: {speed}\n  * accuracy: {accuracy}\n  * cooldown: {cooldown}\n".format(level=smallPlayerData["level"], power=smallPlayerData["attr"]["attr_pwr"], speed=smallPlayerData["attr"]["attr_speed"], accuracy=smallPlayerData["attr"]["attr_acc"], cooldown=smallPlayerData["attr"]["attr_cool"])
     stats = smallPlayerData["stats"]
-    body += "\nplayer stats:\n  * swishes: {swishes}\n  * number of games played: {gamesplayed}\n  * win rate: {winrate}%\n  * highest trophies: {highscore}\n  * best season rank: {bestrank}\n".format(swishes=stats["swishes"], gamesplayed=stats["gamesplayed"], winrate=round(100*stats["wins"]/stats["gamesplayed"], 2) if stats["gamesplayed"] else 0, highscore=stats["highesttrophies"], bestrank=stats["highestseasonrank"])
+    body += "\nplayer stats:\n  * swishes: {swishes}\n  * number of games played: {gamesplayed}\n  * win rate: {winrate}%\n  * highest trophies: {highscore}\n  * best season rank: {bestrank}".format(swishes=stats["swishes"], gamesplayed=stats["gamesplayed"], winrate=round(100*stats["wins"]/stats["gamesplayed"], 2) if stats["gamesplayed"] else 0, highscore=round(stats["highesttrophies"]), bestrank=round(stats["highestseasonrank"]))
+    body += "\n  * seasonal events completed: "
+    eventsCompleted = [season for season in smallPlayerData["special_event_stats"] if list(smallPlayerData["special_event_stats"][season].values())[0]["value"] == list(smallPlayerData["special_event_stats"][season].values())[0]["max_value"]]
+    body += ", ".join(eventsCompleted) if eventsCompleted else "none"
     body += bot_globals.safe_split_str
     if not smallPlayerData["team_id"]:
         if playerId:
@@ -454,7 +459,7 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
             head += " (id: " + playerId + ")"
         return (head, body)
     head += " (id: " + bigPlayerData["id"] + ")"
-    body += "\nextra player details:\nplayer status: " + ("online" if bigPlayerData["online"] else "offline") + "\n"
+    body += "\n\nextra player details:\nplayer status: " + ("online" if bigPlayerData["online"] else "offline") + "\n"
     bigPlayerData = bigPlayerData["scriptData"] #there is a bit of stuff outside of the scriptData, but we probably won't need it
     corePlayerData = bigPlayerData["data"]
     body += "friend code: " + bigPlayerData["invite_code"] + "\n"
@@ -464,7 +469,7 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
     packSlots = [bigPlayerData["slot1"], bigPlayerData["slot2"], bigPlayerData["slot3"], bigPlayerData["slot4"]]
     body += "packs slots:\n"
     for i, pack in enumerate(packSlots):
-        packStr = "  * {n} - {packType}".format(n=i+1, packType=bot_globals.cardpacks[pack["type"]] if pack["type"] != -1 else "empty")
+        packStr = "  * {n} - {packType} pack".format(n=i+1, packType=bot_globals.cardpacks[pack["type"]] if pack["type"] != -1 else "empty")
         if pack["unlocking"]:
             timechg = pack["available_time"]/1000 - time.time()
             packStr += " (currently being unlocked, available in {timestr})".format(timestr=datetime.timedelta(seconds = round(timechg))) if timechg > 0 else "(ready to open)"
@@ -581,6 +586,8 @@ async def finishGetTeamInfo(ws, response, args, message_object):
     if not "sort" in args or args["sort"] not in bot_globals.sortFactors:
         args["sort"] = "trophies"
     if bot_globals.sortFactors[args["sort"]]:
+        if not "prev_function_data" in args:
+            args["prev_function_data"] = [response]
         teamMembers = teamJson["teams"][0]["members"]
         memberIndx = len(response) - 1 if type(response) is list else 0
         if memberIndx < len(teamMembers):
@@ -622,13 +629,15 @@ async def finishGetTeamInfo(ws, response, args, message_object):
             mData[sortFactorData] = member["scriptData"]["last_login"]
             mData[sortFactor] = str(datetime.timedelta(seconds=round(time.time() - mData[sortFactorData]/1000))) + " from now"
         elif sortFactor == "level":
-            mData[sortFactorData] = member["scriptData"]["data"]["level"]
+            mData[sortFactorData] = round(member["scriptData"]["data"]["level"])
         elif sortFactor == "winrate":
             statData = response[i+1]["scriptData"]["data"]["stats"]
             mData[sortFactorData] = round(100 * statData["wins"] / statData["gamesplayed"], 2) if statData["gamesplayed"] else 0
             mData[sortFactor] = "{0}% ({1}/{2})".format(mData[sortFactorData], statData["wins"], statData["gamesplayed"])
         elif sortFactor == "cardssold":
-            mData[sortFactorData] = member["scriptData"]["data"]["cards_sold"]
+            mData[sortFactorData] = round(member["scriptData"]["data"]["cards_sold"])
+        elif sortFactor == "swishes":
+            mData[sortFactorData] = round(response[i+1]["scriptData"]["data"]["stats"]["swishes"])
         if not sortFactor in mData:
             mData[sortFactor] = mData[sortFactorData]
         memberTableData.append(mData)
