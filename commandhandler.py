@@ -252,7 +252,7 @@ async def finishGetChallenge(ws, response, args, message_object):
         json.dump(bot_globals.command_data, open(bot_globals.command_data_path, 'w'))
     header = challenge_data["current_event_id"] + "\n"
     if current_event_data["duration"]:
-        header += "Event start time: " + time.asctime(time.gmtime(int(current_event_data["start_time"]/1000))) + " GMT\n"
+        header += "Event start time: " + time.asctime(time.localtime(int(current_event_data["start_time"]/1000))) + " EST\n"
         timedelta = round((current_event_data["start_time"] + current_event_data["duration"])/1000 - time.time())
         timeleft = "the event finished"
         if timedelta >= 0:
@@ -420,7 +420,7 @@ async def listChallenges(ws, args, message_object):
     events.sort(reverse=True)
     outStr = "Challenge events:\n"
     for event in events:
-        outStr += "  * " + event[1] + " event started at " + (time.asctime(time.gmtime(int(event[0]))) + " GMT" if event[0] else "no specific time") + "\n"
+        outStr += "  * " + event[1] + " event started at " + (time.asctime(time.localtime(int(event[0]))) + " EST" if event[0] else "no specific time") + "\n"
     await sendMessage(ws, ("", outStr), message_object, args)
 
 async def ping(ws, args, message_object):
@@ -604,7 +604,7 @@ async def finishGetTeamInfo(ws, response, args, message_object):
     body = teamMetadata["desc"] + "\nbasic team details: \n  * owner: " + teamData["owner"]["displayName"] + "\n"
     body += "  * location: " + teamMetadata["teamlocation"] + "\n"
     body += "  * required trophies: " + str(round(teamMetadata["teamrequiredtrophies"])) + "\n"
-    body += "  * creation date: " + time.asctime(time.gmtime(int(teamData["teamId"][:8], 16))) + "\n"
+    body += "  * creation date: " + time.asctime(time.localtime(int(teamData["teamId"][:8], 16))) + " EST\n"
     if "teamCards" in teamMetadata:
         body += "\nteam cardpool:\n"
         if "showcardpool" in args or "cardpool" in args:
