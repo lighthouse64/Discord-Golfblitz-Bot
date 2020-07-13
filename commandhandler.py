@@ -432,11 +432,22 @@ async def ping(ws, args, message_object):
 async def finishGetExtraPlayerInfo(ws, response, args, message_object):
     smallPlayerData = response[0]["scriptData"]["data"]
     playerId = smallPlayerData["player_id"] #Note: this attribute does not actually exist by default.  a previous part of the code should have created it
+    bigPlayerData = False
+    teamMembers = False
+    if smallPlayerData["team_id"]:
+        teamMembers = response[1]["teams"][0]["members"]
+        for member in teamMembers:
+            if member["id"] == playerId or member["displayName"].encode('ascii', 'ignore') == smallPlayerData["display_name"].encode('ascii', 'ignore') and member["scriptData"]["last_login"] == smallPlayerData["last_login"]:
+                bigPlayerData = member
+                playerId = bigPlayerData["id"]
+                break
     head = smallPlayerData["display_name"] + " " + str(int(smallPlayerData["trophies"]))
     body = "basic player details:\n"
-    body += "team: " + smallPlayerData["team_name"][4:] + ("(id: " + smallPlayerData["team_id"] + ")" if smallPlayerData["team_id"] else "none")+"\n"
-    body += "last logged in {0} ago\n".format(datetime.timedelta(seconds=round(time.time() - smallPlayerData["last_login"]/1000)) if smallPlayerData["last_login"] else " an unknown amount of time")
-    body += "hat: " + bot_globals.hats[str(smallPlayerData["hat"])]["name"]["en"] + ", golfer: " + bot_globals.golfers[str(smallPlayerData["golfer"])]["name"]["en"] + "\n"
+    body += "  * team: " + smallPlayerData["team_name"][4:] + (" (id: " + smallPlayerData["team_id"] + ")" if smallPlayerData["team_id"] else "none")+"\n"
+    if playerId:
+        body += "  * join date: " + time.asctime(time.gmtime(int(playerId[:8], 16))) + " GMT\n"
+    body += "  * last logged in {0} ago\n".format(datetime.timedelta(seconds=round(time.time() - smallPlayerData["last_login"]/1000)) if smallPlayerData["last_login"] else " an unknown amount of time")
+    body += "  * hat: " + bot_globals.hats[str(smallPlayerData["hat"])]["name"]["en"] + "\n  * golfer: " + bot_globals.golfers[str(smallPlayerData["golfer"])]["name"]["en"] + "\n"
     body += "\nplayer attributes:\n  * level: {level}\n  * power: {power}\n  * speed: {speed}\n  * accuracy: {accuracy}\n  * cooldown: {cooldown}\n".format(level=smallPlayerData["level"], power=smallPlayerData["attr"]["attr_pwr"], speed=smallPlayerData["attr"]["attr_speed"], accuracy=smallPlayerData["attr"]["attr_acc"], cooldown=smallPlayerData["attr"]["attr_cool"])
     stats = smallPlayerData["stats"]
     body += "\nplayer stats:\n  * swishes: {swishes}\n  * number of games played: {gamesplayed}\n  * win rate: {winrate}%\n  * highest trophies: {highscore}\n  * best season rank: {bestrank}".format(swishes=stats["swishes"], gamesplayed=stats["gamesplayed"], winrate=round(100*stats["wins"]/stats["gamesplayed"], 2) if stats["gamesplayed"] else 0, highscore=round(stats["highesttrophies"]), bestrank=round(stats["highestseasonrank"]))
@@ -448,12 +459,6 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
         if playerId:
             head += " (id: " + playerId + ")"
         return (head, body)
-    teamMembers = response[1]["teams"][0]["members"]
-    bigPlayerData = False
-    for member in teamMembers:
-        if member["id"] == playerId or member["displayName"].encode('ascii', 'ignore') == smallPlayerData["display_name"].encode('ascii', 'ignore') and member["scriptData"]["last_login"] == smallPlayerData["last_login"]:
-            bigPlayerData = member
-            break
     if not bigPlayerData: #do this in case the player somehow left the team in the small time fragment that existed between the chain of commands
         if playerId:
             head += " (id: " + playerId + ")"
@@ -517,11 +522,9 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
         body += "total number of emotes: {n}\n".format(n=len(corePlayerData["emotes"])) + bot_globals.safe_split_str
     body += "\ndaily deals:\n"
     for deal in bigPlayerData["daily_deals"]:
-        if deal == "time":
-            body += "time until the deals reset: " + str(datetime.timedelta(seconds=round(time.time() - bigPlayerData["daily_deals"][deal]/1000))) + "\n"
-        else:
+        if deal != "time":
             deal = bigPlayerData["daily_deals"][deal]
-            body += "{item} {type} x{num} for {cost} gems\n".format(item=bot_globals.golfers[deal["identifier"]]["name"]["en"] if deal["type"] == "golfer" else (bot_globals.hats[deal["identifier"]]["name"]["en"] if deal["type"] == "hat" else bot_globals.powerups[deal["identifier"]]["name"]["en"]), type=deal["type"], num=deal["count"], cost=deal["cost"])
+            body += "  * {item} {type} x{num} for {cost} gems\n".format(item=bot_globals.golfers[deal["identifier"]]["name"]["en"] if deal["type"] == "golfer" else (bot_globals.hats[deal["identifier"]]["name"]["en"] if deal["type"] == "hat" else bot_globals.powerups[deal["identifier"]]["name"]["en"]), type=deal["type"], num=deal["count"], cost=deal["cost"])
     return (head, body)
 
 async def getExtraPlayerInfo(ws, args, message_object):
@@ -598,9 +601,10 @@ async def finishGetTeamInfo(ws, response, args, message_object):
     teamMetadata = teamJson["scriptData"]
     teamData = teamJson["teams"][0]
     header = "{name} {trophies} (id: {id})".format(name=teamData["teamName"][4:], trophies=int(teamMetadata["teamcurrenttrophies"]), id=teamData["teamId"])
-    body = teamMetadata["desc"] + "owner: " + teamData["owner"]["displayName"] + "\n"
-    body += "location: " + teamMetadata["teamlocation"] + "\n"
-    body += "required trophies: " + str(teamMetadata["teamrequiredtrophies"]) + "\n"
+    body = teamMetadata["desc"] + "\nbasic team details: \n  * owner: " + teamData["owner"]["displayName"] + "\n"
+    body += "  * location: " + teamMetadata["teamlocation"] + "\n"
+    body += "  * required trophies: " + str(round(teamMetadata["teamrequiredtrophies"])) + "\n"
+    body += "  * creation date: " + time.asctime(time.gmtime(int(teamData["teamId"][:8], 16))) + "\n"
     if "teamCards" in teamMetadata:
         body += "\nteam cardpool:\n"
         if "showcardpool" in args or "cardpool" in args:
@@ -616,8 +620,8 @@ async def finishGetTeamInfo(ws, response, args, message_object):
                         total += cards[card]["count"]
                 body += "total " + cardtype + " cards: " + str(total) + "\n"
         else:
-            body += "use the -showcardpool argument to show the team cardpool\n"
-    body += "\nmembers:\n"
+            body += "Use the -showcardpool argument to show the team cardpool\n"
+    body += "\nmembers:\n\n"
     memberTableData = []
     sortFactor = args["sort"]
     sortFactorData = sortFactor + "data"

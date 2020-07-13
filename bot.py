@@ -290,7 +290,7 @@ async def on_message(message):
         if "linkedGroups" in bot_globals.group_configs[guildid]:
             for groupId, channelId in bot_globals.group_configs[guildid]["linkedGroups"]:
                 if channelId == message.channel.id:
-                    await commandhandler.sendMessage(default_ws, (message.author.name + ":", message.content), {"teamId": groupId}, {})
+                    await commandhandler.sendMessage(default_ws, (message.author.name + ":", message.content), {"teamId": groupId}, {"noformat": True})
     if message.content.startswith(local_prefix):
         print("command sent!", message.content, message.id)
         waitTime = sendMsgWaitTime(str(message.author.id))
