@@ -445,7 +445,7 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
     body = "basic player details:\n"
     body += "  * team: " + smallPlayerData["team_name"][4:] + (" (id: " + smallPlayerData["team_id"] + ")" if smallPlayerData["team_id"] else "none")+"\n"
     if playerId:
-        body += "  * join date: " + time.asctime(time.gmtime(int(playerId[:8], 16))) + " GMT\n"
+        body += "  * join date: " + time.asctime(time.localtime(int(playerId[:8], 16))) + " EST\n"
     body += "  * last logged in {0} ago\n".format(datetime.timedelta(seconds=round(time.time() - smallPlayerData["last_login"]/1000)) if smallPlayerData["last_login"] else " an unknown amount of time")
     body += "  * hat: " + bot_globals.hats[str(smallPlayerData["hat"])]["name"]["en"] + "\n  * golfer: " + bot_globals.golfers[str(smallPlayerData["golfer"])]["name"]["en"] + "\n"
     body += "\nplayer attributes:\n  * level: {level}\n  * power: {power}\n  * speed: {speed}\n  * accuracy: {accuracy}\n  * cooldown: {cooldown}\n".format(level=smallPlayerData["level"], power=smallPlayerData["attr"]["attr_pwr"], speed=smallPlayerData["attr"]["attr_speed"], accuracy=smallPlayerData["attr"]["attr_acc"], cooldown=smallPlayerData["attr"]["attr_cool"])
