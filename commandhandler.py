@@ -437,7 +437,7 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
     if smallPlayerData["team_id"]:
         teamMembers = response[1]["teams"][0]["members"]
         for member in teamMembers:
-            if member["id"] == playerId or member["displayName"].encode('ascii', 'ignore') == smallPlayerData["display_name"].encode('ascii', 'ignore') and member["scriptData"]["last_login"] == smallPlayerData["last_login"]:
+            if member["id"] == playerId or member["displayName"].encode('ascii', 'ignore') == smallPlayerData["display_name"].encode('ascii', 'ignore') and "last_login" in smallPlayerData and "last_login" in member["scriptData"] and member["scriptData"]["last_login"] == smallPlayerData["last_login"]:
                 bigPlayerData = member
                 playerId = bigPlayerData["id"]
                 break
@@ -446,7 +446,7 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
     body += "  * team: " + smallPlayerData["team_name"][4:] + (" (id: " + smallPlayerData["team_id"] + ")" if smallPlayerData["team_id"] else "none")+"\n"
     if playerId:
         body += "  * join date: " + time.asctime(time.localtime(int(playerId[:8], 16))) + " EST\n"
-    body += "  * last logged in {0} ago\n".format(datetime.timedelta(seconds=round(time.time() - smallPlayerData["last_login"]/1000)) if smallPlayerData["last_login"] else " an unknown amount of time")
+    body += "  * last logged in {0} ago\n".format(datetime.timedelta(seconds=round(time.time() - smallPlayerData["last_login"]/1000)) if smallPlayerData["last_login"] else "an unknown amount of time")
     body += "  * hat: " + bot_globals.hats[str(smallPlayerData["hat"])]["name"]["en"] + "\n  * golfer: " + bot_globals.golfers[str(smallPlayerData["golfer"])]["name"]["en"] + "\n"
     body += "\nplayer attributes:\n  * level: {level}\n  * power: {power}\n  * speed: {speed}\n  * accuracy: {accuracy}\n  * cooldown: {cooldown}\n".format(level=smallPlayerData["level"], power=smallPlayerData["attr"]["attr_pwr"], speed=smallPlayerData["attr"]["attr_speed"], accuracy=smallPlayerData["attr"]["attr_acc"], cooldown=smallPlayerData["attr"]["attr_cool"])
     stats = smallPlayerData["stats"]
@@ -467,10 +467,10 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
     body += "\n\nextra player details:\nplayer status: " + ("online" if bigPlayerData["online"] else "offline") + "\n"
     bigPlayerData = bigPlayerData["scriptData"] #there is a bit of stuff outside of the scriptData, but we probably won't need it
     corePlayerData = bigPlayerData["data"]
-    body += "friend code: " + bigPlayerData["invite_code"] + "\n"
+    body += "friend code: " + (bigPlayerData["invite_code"] if "invite_code" in bigPlayerData else "none") + "\n"
     body += "xp: " + str(corePlayerData["xp"]) + "\n"
-    sellTime = bigPlayerData["token_time"]/1000 - time.time()
-    body += "player can sell cards {0}\n".format("in " + str(datetime.timedelta(seconds = round(sellTime))) if sellTime > 0 else "now")
+    sellTime = bigPlayerData["token_time"]/1000 - time.time() if "token_time" in bigPlayerData else 0
+    body += "player can sell cards {0}\n".format("in " + str(datetime.timedelta(seconds = round(sellTime))) if sellTime > 0 else "now") if sellTime else "this player has no data on when they can sell cards\n"
     packSlots = [bigPlayerData["slot1"], bigPlayerData["slot2"], bigPlayerData["slot3"], bigPlayerData["slot4"]]
     body += "packs slots:\n"
     for i, pack in enumerate(packSlots):
@@ -521,10 +521,13 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
             body += "  * " + emoteStr + "\n" + bot_globals.safe_split_str
         body += "total number of emotes: {n}\n".format(n=len(corePlayerData["emotes"])) + bot_globals.safe_split_str
     body += "\ndaily deals:\n"
-    for deal in bigPlayerData["daily_deals"]:
-        if deal != "time":
-            deal = bigPlayerData["daily_deals"][deal]
-            body += "  * {item} {type} x{num} for {cost} gems\n".format(item=bot_globals.golfers[deal["identifier"]]["name"]["en"] if deal["type"] == "golfer" else (bot_globals.hats[deal["identifier"]]["name"]["en"] if deal["type"] == "hat" else bot_globals.powerups[deal["identifier"]]["name"]["en"]), type=deal["type"], num=deal["count"], cost=deal["cost"])
+    if "daily_deals" in bigPlayerData:
+        for deal in bigPlayerData["daily_deals"]:
+            if deal != "time":
+                deal = bigPlayerData["daily_deals"][deal]
+                body += "  * {item} {type} x{num} for {cost} gems\n".format(item=bot_globals.golfers[deal["identifier"]]["name"]["en"] if deal["type"] == "golfer" else (bot_globals.hats[deal["identifier"]]["name"]["en"] if deal["type"] == "hat" else bot_globals.powerups[deal["identifier"]]["name"]["en"]), type=deal["type"], num=deal["count"], cost=deal["cost"])
+    else:
+        body += "this player has no data on their available daily deals"
     return (head, body)
 
 async def getExtraPlayerInfo(ws, args, message_object):
