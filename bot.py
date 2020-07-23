@@ -86,13 +86,18 @@ def sendMsgWaitTime(player): #rate limit commands
 
 def argParser(raw_args):
     new_args = {}
+    last_arg_indx = -1
     for i, arg in enumerate(raw_args):
         if arg.startswith(argprefix):
-            new_args[arg[1:]] = raw_args[i+1] if i < len(raw_args) - 1 and not raw_args[i+1].startswith(argprefix) else ""
+            if last_arg_indx > -1:
+                new_args[raw_args[last_arg_indx][1:]] = " ".join(raw_args[last_arg_indx + 1:i])
+            last_arg_indx = i
+    if raw_args:
+        new_args[raw_args[last_arg_indx][1:]] =  " ".join(raw_args[last_arg_indx + 1:])
     return new_args
 
 async def sendCommand(ws, message, discord_message):
-    message = re.sub(r"[“”’„]", "\"", message)
+    message = re.sub(r"[“”’„]", "\"", message.lower())
     messagedetails = message[1:].split()
     startingQuote = False
     startingIndex = 0
@@ -220,6 +225,7 @@ async def keepalive(ws):
             await ws.ping()
             await ws.send(json.dumps(commandhandler.requests["get_current_season"]))
             print("keep alive request sent")
+            await bot.change_presence(status=discord.Status.online, activity=discord.Game("Golf Blitz for {0} servers".format(len(bot.guilds))))
             await asyncio.sleep(45)
         except:
             print("bot had an issue, restart 1")
