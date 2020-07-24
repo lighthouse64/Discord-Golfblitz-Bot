@@ -4,6 +4,12 @@
     "shortCode": "DOWNLOADABLES_HD",
     "requestId": "something"
   },
+  "get_player_rankings": {
+    "@class": ".GetLeaderboardEntriesRequest",
+    "leaderboards": [],
+    "player": "some id",
+    "requestId": "something"
+  },
   "get_team_data": {
     "@class": ".GetTeamRequest",
     "teamId": "some id",

@@ -337,7 +337,7 @@ async def getLeaderboard(ws, args, message_object):
             shortCodeParts.append("LAST-COUNTRY")
         else:
             shortCodeParts.append("COUNTRY")
-        shortCodeParts.append(args["country"])
+        shortCodeParts.append(args["country"].upper())
 
     if isTeam:
         shortCodeParts.append("LAST-SEASON")
@@ -434,6 +434,9 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
     playerId = smallPlayerData["player_id"] #Note: this attribute does not actually exist by default.  a previous part of the code should have created it
     bigPlayerData = False
     teamMembers = False
+    rankData = False
+    globalLeaderboardCode = "INDIVIDUAL_TROPHIES.SEASON." + str(bot_globals.curr_season)
+    localLeaderboardCode = "INDIVIDUAL_TROPHIES_BY_COUNTRY.COUNTRY.{0}.SEASON.{1}".format(smallPlayerData["country"], bot_globals.curr_season)
     if smallPlayerData["team_id"]:
         teamMembers = response[1]["teams"][0]["members"]
         for member in teamMembers:
@@ -441,8 +444,19 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
                 bigPlayerData = member
                 playerId = bigPlayerData["id"]
                 break
+    if playerId:
+        if response[-1]["@class"] != ".GetLeaderboardEntriesResponse":
+            baseReq = requests["get_player_rankings"].copy()
+            baseReq["player"] = playerId
+            baseReq["leaderboards"].append(globalLeaderboardCode)
+            baseReq["leaderboards"].append(localLeaderboardCode)
+            await sendGolfblitzWs(ws, finishGetExtraPlayerInfo, args, message_object, "none", baseReq)
+            return "skipJson"
+        rankData = response[-1]
+
     head = smallPlayerData["display_name"] + " " + str(int(smallPlayerData["trophies"]))
     body = "basic player details:\n"
+    body += "  * country: " + smallPlayerData["country"] + "\n"
     body += "  * team: " + smallPlayerData["team_name"][4:] + (" (id: " + smallPlayerData["team_id"] + ")" if smallPlayerData["team_id"] else "none")+"\n"
     if playerId:
         body += "  * join date: " + time.asctime(time.localtime(int(playerId[:8], 16))) + " EST\n"
@@ -450,7 +464,13 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
     body += "  * hat: " + bot_globals.hats[str(smallPlayerData["hat"])]["name"]["en"] + "\n  * golfer: " + bot_globals.golfers[str(smallPlayerData["golfer"])]["name"]["en"] + "\n"
     body += "\nplayer attributes:\n  * level: {level}\n  * power: {power}\n  * speed: {speed}\n  * accuracy: {accuracy}\n  * cooldown: {cooldown}\n".format(level=smallPlayerData["level"], power=smallPlayerData["attr"]["attr_pwr"], speed=smallPlayerData["attr"]["attr_speed"], accuracy=smallPlayerData["attr"]["attr_acc"], cooldown=smallPlayerData["attr"]["attr_cool"])
     stats = smallPlayerData["stats"]
-    body += "\nplayer stats:\n  * swishes: {swishes}\n  * number of games played: {gamesplayed}\n  * win rate: {winrate}%\n  * highest trophies: {highscore}\n  * best season rank: {bestrank}".format(swishes=stats["swishes"], gamesplayed=stats["gamesplayed"], winrate=round(100*stats["wins"]/stats["gamesplayed"], 2) if stats["gamesplayed"] else 0, highscore=round(stats["highesttrophies"]), bestrank=round(stats["highestseasonrank"]))
+    body += "\nplayer stats:\n"
+    if rankData:
+        if not rankData[globalLeaderboardCode]:
+            rankData[globalLeaderboardCode]["rank"] = rankData[localLeaderboardCode]["rank"] = "n/a"
+        body += "  * global rank: " + str(rankData[globalLeaderboardCode]["rank"])
+        body += "\n  * local rank: " + str(rankData[localLeaderboardCode]["rank"]) + "\n"
+    body += "  * swishes: {swishes}\n  * number of games played: {gamesplayed}\n  * win rate: {winrate}%\n  * highest trophies: {highscore}\n  * best season rank: {bestrank}".format(swishes=stats["swishes"], gamesplayed=stats["gamesplayed"], winrate=round(100*stats["wins"]/stats["gamesplayed"], 2) if stats["gamesplayed"] else 0, highscore=round(stats["highesttrophies"]), bestrank=round(stats["highestseasonrank"]))
     body += "\n  * seasonal events completed: "
     eventsCompleted = [season for season in smallPlayerData["special_event_stats"] if list(smallPlayerData["special_event_stats"][season].values())[0]["value"] == list(smallPlayerData["special_event_stats"][season].values())[0]["max_value"]]
     body += ", ".join(eventsCompleted) if eventsCompleted else "none"
@@ -531,6 +551,9 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
     return (head, body)
 
 async def getExtraPlayerInfo(ws, args, message_object):
+    if not "scriptData" in args["prev_function_data"][0]:
+        await sendMessage(ws, bot_globals.error_messages["invalid_player"], message_object, args)
+        return
     teamId = args["prev_function_data"][0]["scriptData"]["data"]["team_id"]
     args["prev_function_data"][0]["scriptData"]["data"]["player_id"] = args["id"] #we will need the player id later
     if teamId:
@@ -564,7 +587,7 @@ async def getPlayerInfo(ws, args, message_object):
         elif "code" in args:
             data = json.loads(httprequests.post("https://f351468gbswz.live.gamesparks.net/rs/gb_api/S2cypG37waV7wXE2cpSS4lKSRlzzgBZz/LogEventRequest", headers={"content-type": "application/json"}, data=json.dumps({"@class": ".LogEventRequest", "eventKey": "GB_API_PLAYER_INFO", "playerId": "5ccf4984235bac98e46dec48", "requestId": "", "friendcode": args["code"].lower()})).text)
             if "error" in data: # alert the requester that they asked for a bad friend code
-                await sendMessage(ws, bot_globals.error_messages["invalid_code"].split("\n"), message_object, args)
+                await sendMessage(ws, bot_globals.error_messages["invalid_code"], message_object, args)
                 return
             args["prev_function_data"] = [data]
             args["id"] = False # we are going to have to handle this soon
