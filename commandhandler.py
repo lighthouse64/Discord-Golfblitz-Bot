@@ -97,6 +97,8 @@ async def finishCommand(ws, responseJson, offlineData=False):
         traceback.print_exc()
 
 async def sendMessage(ws, message, message_object, request_args, arg_aliases={}):
+    if message == "skipJson": #some weird trigger happened
+        return
     arg_aliases["page"] = "pages"
     #print(message)
     isGolfblitzMessage = type(message_object) is dict
