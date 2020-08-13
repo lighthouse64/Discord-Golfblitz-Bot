@@ -97,10 +97,10 @@ def argParser(raw_args):
     return new_args
 
 async def sendCommand(ws, message, discord_message):
-    message = re.sub(r"['\"“”’„]", "", message.lower())
-    messagedetails = message[1:].split()
+    #message = re.sub(r"['\"“”’„]", "", message.lower())
+    messagedetails = message[1:].lower().split()
     print(messagedetails)
-    print("Command sent: ", message)
+    print("Command sent: ", message, file=sys.stderr)
     if messagedetails[0] in commandhandler.commands:
         try:
             await commandhandler.commands[messagedetails[0]](default_ws, argParser(messagedetails[1:]), discord_message)
