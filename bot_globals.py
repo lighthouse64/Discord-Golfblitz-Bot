@@ -159,13 +159,14 @@ group prefix: {prefix}
 bot invite link: https://discord.com/api/oauth2/authorize?client_id=720685363026198532&permissions=67488832&scope=bot
 friend code: g33ykw
 github: https://github.com/lighthouse64/Discord-Golfblitz-Bot
-testing server discord https://discord.gg/eaddU2c
+testing server discord: https://discord.gg/eaddU2c
 
 If you have any comments or concerns, contact me on discord.
 
 Other Credits
 ---------------
-FlutterThread8#0786: bot profile picture
+Checkmate#0808: current bot profile picture
+FlutterThread8#0786: old bot profile picture
 '''
 for command in command_short_descriptions:
     default_help_msg += "  * " + command + " " + command_short_descriptions[command] + "\n"
