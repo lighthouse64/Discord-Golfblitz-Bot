@@ -29,7 +29,10 @@ command_data_path = os.path.join(sys.path[0], "command_data.json")
 command_data = json.load(open(command_data_path, 'r')) if os.path.isfile(command_data_path) else {}
 command_short_descriptions = {"getchallenge": "[-event <event_name>]", "help": "[-command <command name>]", "leaderboard": "[-count <number (max is 10000)>] [-country <country accronym>] [-offset <number>] [-season <number>] [-team]", "leaderboardstats": "same syntax as leaderboard", "listchallenges": "", "playerinfo": "[-code <friend code>] or [-id <player uuid>] or [-rank <number>] [-country <country>] [-allcards]", "setprefix": "-prefix <prefix str>", "teaminfo": "[-id <team id>] or [-name <team name>] or [-rank <leaderboard rank>] [-showcardpool] [-sort <sort factor>]", "teamsearch": "-name <team name>", "verifyaccount": "-id <id of other client>"}
 default_help_msg_head = "Golf Blitz Bot Help Page"
-default_help_msg = '''Global Arguments:
+default_help_msg = '''User Verification Status:
+{0}
+
+Global Arguments:
   * -json (only works on discord)
   * -pages or -page <number or start_page-end_page or all>,<page_elem>,...
   * -noformat (only has an effect on discord, removes the code formatting around the output)
@@ -52,7 +55,7 @@ Arguments:
 Usage: info
 Arguments: none
 '''),
-"help": ("help help page", '''Get detailed information about how to use a command.
+"help": ("help help page", '''Get detailed information about how to use a command, or find the list of commands.
 Usage: help [-command <command>]
 
 Arguments:

@@ -8,7 +8,7 @@ import traceback
 import io
 import statistics
 import requests as httprequests
-from collections import defaultdict
+import pycountry
 
 requests = json.loads(open(os.path.join(sys.path[0], "golfblitz-requests.json"), 'r').read())
 
@@ -19,8 +19,11 @@ async def sendGolfblitzWs(ws, response_function, args, message_object, function_
 
 async def finishDiscordCommand(response, message, request_args):
     if "json" in request_args:
-        attachment = discord.File(io.StringIO(response), filename="response.json")
-        await message.channel.send("Resulting json file", file=attachment)
+        try:
+            attachment = discord.File(io.StringIO(response), filename="response.json")
+            await message.channel.send("Resulting json file", file=attachment)
+        except:
+            await message.channel.send("Failed to create a json file")
         return
     for i, page in enumerate(response):
         if page:
@@ -113,7 +116,10 @@ async def sendMessage(ws, message, message_object, request_args, arg_aliases={})
         maxpagelen = (5000 if isGolfblitzMessage else (2000 if disableCodeFormat else 1991)) - len(header)
         pages = []
         currPage = ("" if disableCodeFormat else "```\n") + header
+        #print(message)
         for part in message:
+            if not part: #if there is a blank part for some reason, ignore it
+                continue
             partWasAlreadyAdded = False
             #print("PART", len(part))
             if len(part) > maxpagelen: #we have to do ugly page cuts to preserve order.
@@ -287,7 +293,7 @@ async def help(ws, args, message_object):
         else:
             await sendMessage(ws, bot_globals.error_messages["page_not_found"].split("\n"), message_object, args)
     else:
-        await sendMessage(ws, (bot_globals.default_help_msg_head, bot_globals.default_help_msg), message_object, args)
+        await sendMessage(ws, (bot_globals.default_help_msg_head, bot_globals.default_help_msg.format("verified" if get_verification(message_object["fromId"] if type(message_object) is dict else str(message_object.author.id)) else "not verified")), message_object, args)
 
 async def info(ws, args, message_object):
     groupPrefix = bot_globals.bot_config["prefix"]
@@ -316,7 +322,7 @@ async def finishGetLeaderboard(ws, response, args, message_object):
         tableData = discordTable(leaderboardData, changeDict={"LAST-SCORE" if isTeamData else "SCORE": "trophies", "rank": "#", "LAST-COUNTRY": "COUNTRY"}, orderList= ["rank", "teamName", "LAST-COUNTRY", "LAST-SCORE"] if isTeamData else ["rank", "userName", "COUNTRY", "SCORE"], numbered=False)
     except IndexError:
         return ("Error: empty leaderboard", "There was no data to display.")
-    return ("Season {seasonNum} leaderboard\n{tableHeader}".format(seasonNum=leaderboardData[0]["LAST-SEASON" if isTeamData else "SEASON"], tableHeader=tableData[0]), tableData[1])
+    return ((args["country"].name if "country" in args else "Global") + " Season {seasonNum} leaderboard\n{tableHeader}".format(seasonNum=leaderboardData[0]["LAST-SEASON" if isTeamData else "SEASON"], tableHeader=tableData[0]), tableData[1])
 
 async def getLeaderboard(ws, args, message_object):
     if "teams" in args:
@@ -339,7 +345,8 @@ async def getLeaderboard(ws, args, message_object):
             shortCodeParts.append("LAST-COUNTRY")
         else:
             shortCodeParts.append("COUNTRY")
-        shortCodeParts.append(args["country"].upper())
+        args["country"] = pycountry.countries.search_fuzzy(args["country"])[0]
+        shortCodeParts.append(args["country"].alpha_2)
 
     if isTeam:
         shortCodeParts.append("LAST-SEASON")
@@ -655,28 +662,33 @@ async def finishGetTeamInfo(ws, response, args, message_object):
     sortFactorData = sortFactor + "data"
     for i, member in enumerate(teamData["members"]):
         mData = {"name": member["displayName"], "friend code": member["scriptData"]["invite_code"] if "invite_code" in member["scriptData"] else "none", "id": member["id"]}
-        if sortFactor == "trophies":
-            mData[sortFactorData] = round(member["scriptData"]["data"]["trophies"])
-        elif sortFactor == "lastlogin":
-            mData[sortFactorData] = member["scriptData"]["last_login"]
-            mData[sortFactor] = str(datetime.timedelta(seconds=round(time.time() - mData[sortFactorData]/1000))) + " from now"
-        elif sortFactor == "level":
-            mData[sortFactorData] = round(member["scriptData"]["data"]["level"])
-        elif sortFactor == "winrate":
-            statData = response[i+1]["scriptData"]["data"]["stats"]
-            mData[sortFactorData] = round(100 * statData["wins"] / statData["gamesplayed"], 2) if statData["gamesplayed"] else 0
-            mData[sortFactor] = "{0}% ({1}/{2})".format(mData[sortFactorData], statData["wins"], statData["gamesplayed"])
-        elif sortFactor == "cardssold":
-            mData[sortFactorData] = round(member["scriptData"]["data"]["cards_sold"])
-        elif sortFactor == "swishes":
-            mData[sortFactorData] = round(response[i+1]["scriptData"]["data"]["stats"]["swishes"])
+        try:
+            if sortFactor == "trophies":
+                mData[sortFactorData] = round(member["scriptData"]["data"]["trophies"])
+            elif sortFactor == "lastlogin":
+                mData[sortFactorData] = member["scriptData"]["last_login"]
+                mData[sortFactor] = str(datetime.timedelta(seconds=round(time.time() - mData[sortFactorData]/1000))) + " from now"
+            elif sortFactor == "level":
+                mData[sortFactorData] = round(member["scriptData"]["data"]["level"])
+            elif sortFactor == "winrate":
+                statData = response[i+1]["scriptData"]["data"]["stats"]
+                mData[sortFactorData] = round(100 * statData["wins"] / statData["gamesplayed"], 2) if statData["gamesplayed"] else 0
+                mData[sortFactor] = "{0}% ({1}/{2})".format(mData[sortFactorData], statData["wins"], statData["gamesplayed"])
+            elif sortFactor == "cardssold":
+                mData[sortFactorData] = round(member["scriptData"]["data"]["cards_sold"])
+            elif sortFactor == "swishes":
+                mData[sortFactorData] = round(response[i+1]["scriptData"]["data"]["stats"]["swishes"])
+            else: #the sort factor doesn't exist, so ignore it
+                break
+        except:
+            mData[sortFactorData] = -1
         if not sortFactor in mData:
             mData[sortFactor] = mData[sortFactorData]
         memberTableData.append(mData)
 
     memberTableData.sort(key=lambda k: k[sortFactorData], reverse=True)
     try:
-        tableData = discordTable(memberTableData, changeDict = {"cardssold": "cards_sold"}, orderList = [sortFactor, "name", "friend code", "id"])
+        tableData = discordTable(memberTableData, changeDict = {"cardssold": "cards_sold", "lastlogin": "last_login"}, orderList = [sortFactor, "name", "friend code", "id"], rowSegmentNum=1)
         body += tableData[0] + "\n" + tableData[1] + bot_globals.safe_split_str
     except:
         body += "This team has no members.  How lonely :("
@@ -764,7 +776,7 @@ async def verifyAccount(ws, args, message_object):
     id = False
     externalId = args["id"]
     needsVerificationMsg = "Your account is not verified yet.  "
-    if type(message_object) is dict:
+    if type(message_object) is dict: #golf blitz message
         if len(externalId) != 18:
             await directlySendMessage(ws, "Invalid discord id of " + externalId, message_object)
             return
@@ -787,4 +799,4 @@ async def verifyAccount(ws, args, message_object):
         await directlySendMessage(ws, needsVerificationMsg, message_object)
     json.dump(bot_globals.user_configs, open(bot_globals.user_configs_path, 'w'))
 
-commands = {"getchallenge": getChallenge, "info": info, "help": help, "leaderboard": getLeaderboard, "leaderboardstats": getLeaderboardStats, "linkchat": linkChat, "listchallenges": listChallenges, "ping": ping, "playerinfo": getPlayerInfo, "ranks": getLeaderboard, "setprefix": setPrefix, "teaminfo": getTeamInfo, "teamsearch": teamSearch, "verifyaccount": verifyAccount}
+commands = {"getchallenge": getChallenge,"info": info, "help": help, "leaderboard": getLeaderboard, "leaderboardstats": getLeaderboardStats, "linkchat": linkChat, "listchallenges": listChallenges, "ping": ping, "playerinfo": getPlayerInfo, "ranks": getLeaderboard, "setprefix": setPrefix, "teaminfo": getTeamInfo, "teamsearch": teamSearch, "verifyaccount": verifyAccount}
