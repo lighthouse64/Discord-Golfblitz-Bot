@@ -264,6 +264,7 @@ async def getResponses(ws):
         except:
             traceback.print_exc()
             print("bot had an issue, restart 2")
+            break
 
             #os.execl(sys.executable, 'python', __file__, *sys.argv[1:])
 
