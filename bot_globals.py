@@ -13,8 +13,8 @@ assets_path = os.path.join(resources_path, "assets")
 if not os.path.exists(extra_assets_path):
     os.makedirs(extra_assets_path)
 curr_season = -1
-extraResponseCount = {"get_current_challenge": 1}
-sortFactors = {"cardssold": False, "lastlogin": False, "level": False, "swishes": True, "trophies": False, "winrate" : True} #true/false for whether or not they require more data
+extraResponseCount = {"get_current_challenge": 1, "get_bot_friends": 1}
+sortFactors = {"card": False, "cardssold": False, "lastlogin": False, "level": False, "swishes": True, "trophies": False, "winrate" : True} #true/false for whether or not they require more data
 pending_requests = {}
 group_configs_path = os.path.join(configuration_path, "group_configs.json")
 group_configs = json.load(open(group_configs_path, 'r')) if os.path.isfile(group_configs_path) else {}
@@ -24,10 +24,10 @@ user_configs_file_content = open(user_configs_path, 'r').read() if os.path.isfil
 if user_configs_file_content:
     user_configs = json.loads(user_configs_file_content)
 friendly_matches = {}
-error_messages = {"insufficient_permissions":"Error: Insufficient Permissions\nYou do not have sufficient permissions to perform this operation.","no_associated_player_id": "Error: No Associated Player Id:\nThe command failed because there is no golf blitz player associated with this account!", "page_not_found": "Error: Page Not Found\nThe page you are requesting does not exist", "commands_too_quick": "Error: You are sending commands too quickly!\nPlease wait {0} more seconds and then try again.", "invalid_code":("Error: Invalid Friend Code","The code you entered is either not a valid friend code or does not exist."), "invalid_player": ("Error: Invalid Player","The player you have requested does not exist.")}
+error_messages = {"insufficient_permissions":"Error: Insufficient Permissions\nYou do not have sufficient permissions to perform this operation.","no_associated_player_id": "Error: No Associated Player Id:\nThe command failed because there is no golf blitz player associated with this account!", "page_not_found": "Error: Page Not Found\nThe page you are requesting does not exist", "commands_too_quick": "Error: You are sending commands too quickly!\nPlease wait {0} more seconds and then try again.", "invalid_code":("Error: Invalid Friend Code","The code you entered is either not a valid friend code or does not exist."), "invalid_player": ("Error: Invalid Player","The player you have requested does not exist."), "empty_leaderboard": ("Error: Empty Leaderboard", "The leaderboard you requested has no data to display."), "player_info_error": ("Error: Player Info Error", "Something went wrong while trying to request the specified player's info.  Perhaps you requested an invalid player?"), "invalid_card": ("Error: Invalid Card", "The card you wish to sort by does not exist.")}
 command_data_path = os.path.join(sys.path[0], "command_data.json")
 command_data = json.load(open(command_data_path, 'r')) if os.path.isfile(command_data_path) else {}
-command_short_descriptions = {"getchallenge": "[-event <event_name>]", "help": "[-command <command name>]", "leaderboard": "[-count <number (max is 10000)>] [-country <country accronym>] [-offset <number>] [-season <number>] [-team]", "leaderboardstats": "same syntax as leaderboard", "listchallenges": "", "playerinfo": "[-code <friend code>] or [-id <player uuid>] or [-rank <number>] [-country <country>] [-allcards]", "setprefix": "-prefix <prefix str>", "teaminfo": "[-id <team id>] or [-name <team name>] or [-rank <leaderboard rank>] [-showcardpool] [-sort <sort factor>]", "teamsearch": "-name <team name>", "verifyaccount": "-id <id of other client>"}
+command_short_descriptions = {"botfriendlist": "[-nosort]", "getchallenge": "[-event <event_name>]", "help": "[-command <command name>]", "leaderboard": "[-count <number (max is 10000)>] [-country <country accronym>] [-offset <number>] [-season <number>] [-team]", "leaderboardstats": "same syntax as leaderboard", "listchallenges": "", "playerinfo": "[-code <friend code>] or [-id <player uuid>] or [-rank <number>] [-country <country>] [-allcards]", "setprefix": "-prefix <prefix str>", "teaminfo": "[-id <team id>] or [-name <team name>] or [-rank <leaderboard rank>] [-showcardpool] [-sort <sort factor>]", "teamsearch": "-name <team name>", "verifyaccount": "-id <id of other client>"}
 default_help_msg_head = "Golf Blitz Bot Help Page"
 default_help_msg = '''User Verification Status:
 {0}
@@ -45,6 +45,12 @@ Important syntax notes:
 Commands:
 '''
 command_help_page = {
+"botfriendlist": ("botfriendlist help page", '''Get the bot's friend list
+Usage: botfriendlist [-nosort]
+
+Arguments:
+  * nosort (optional) - indicate that you do not want the friend list to be sorted alphabetically
+'''),
 "getchallenge": ("getchallenge help page", '''Get 1v1 challenge event details for the current event or for a past event.
 Usage: getchallenge [-event <event name>]
 
@@ -117,15 +123,17 @@ Examples:
 ?setprefix ! (sets the prefix to "!")
 '''),
 "teaminfo": ("teaminfo help page", '''Get detailed information about a team
-Usage: teaminfo [-id <team id>] or [-name <team name>] or [-rank <leaderboard rank>] [-showcardpool] [-sort <sort factor>]
+Usage: teaminfo [-id <team id>] or [-name <team name>] or [-rank <leaderboard rank>] [-showcardpool] [-sort <sort factor>] [-card <card name>]
 Arguments:
   * id - the team's uuid (should be 24 characters long)
   * name - the team's name
   * rank - the rank that the team is in a given leaderboard
   * showcardpool - toggles whether or not this command will display the team's cardpool
   * sort - sorts the team members output by a given factor (by default, this command will sort by trophies)
+  * card - If the sort factor is card, then you need to specify by which specific card you are sorting by.
 
 Sort Factors:
+  * card - sort members by how many cards they have of the given card type
   * cardssold - sort members by the number of cards that they have sold
   * lastlogin - sort members by the time since they have last logged in
   * level - sort members by what level they are
@@ -157,7 +165,7 @@ Bot Information
 ---------------
 group prefix: {prefix}
 bot invite link: https://discord.com/api/oauth2/authorize?client_id=720685363026198532&permissions=67488832&scope=bot
-friend code: g33ykw
+friend code: 8c1enz
 github: https://github.com/lighthouse64/Discord-Golfblitz-Bot
 testing server discord: https://discord.gg/eaddU2c
 
@@ -206,6 +214,7 @@ def update_hats_and_golfers():
                     continue
                 if elem[key] in strings:
                     elem[key] = strings[elem[key]]
+                    outputDict[elem[key]["en"].lower()] = id
             outputDict[id] = elem.copy()
 
 if os.path.isdir(assets_path):

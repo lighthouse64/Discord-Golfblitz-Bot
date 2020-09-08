@@ -29,6 +29,11 @@
     "request_id": "not set",
     "requestId": "something"
   },
+  "get_bot_friend_list": {
+    "@class": ".LogEventRequest",
+    "eventKey": "FRIEND_REQUEST_FRIENDS_UPDATE",
+    "requestId": "something"
+  },
   "join_friendly_lobby": {
     "@class": ".LogEventRequest",
     "eventKey": "FRIENDLY_MATCH_JOIN",

@@ -156,6 +156,10 @@ async def sendMessage(ws, message, message_object, request_args, arg_aliases={})
             else:
                 try:
                     index = int(arg) - 1
+                    if index < 0:
+                        index = 0
+                    elif index >= len(pages):
+                        index = len(pages) - 1
                     pagesToSend[index] = pages[index]
                 except ValueError as e:
                     pass
@@ -248,6 +252,17 @@ def genRewardStr(i, rewards):
         rewardStr += " & "
     return rewardStr
 
+async def finishGetBotFriends(ws, response, args, message_object):
+    friendList = response[1]["data"]["friends"]
+    body = "Friend Count: " + str(len(friendList)) + "\n"
+    if not "nosort" in args:
+        friendList.sort(key=lambda friend: friend["name"])
+    body += "\n".join(discordTable(friendList, changeDict={"friend_id": "id"}, orderList= ["name", "friend_id"], rowSegmentNum=1))
+    return ("Bot Friend List", body)
+
+async def getBotFriends(ws, args, message_object):
+    await sendGolfblitzWs(ws, finishGetBotFriends, args, message_object, "get_bot_friends", requests["get_bot_friend_list"].copy())
+
 async def finishGetChallenge(ws, response, args, message_object):
     #print(response)
     challenge_data = response[1]["data"]
@@ -308,8 +323,10 @@ async def info(ws, args, message_object):
 
 async def finishGetLeaderboard(ws, response, args, message_object):
     if "error" in response:
-        return ("There was an error with the leaderboard request:", json.dumps(response))
+        return ("There was an error with the leaderboard request.", "error: " + str(response["error"]))
     leaderboardData = response["data"]
+    if not leaderboardData:
+        return bot_globals.error_messages["empty_leaderboard"]
     isTeamData = False
     for elem in leaderboardData:
         if "teamName" in elem: #remove the country indicator from the team name.  it's already in the leaderboard, so no need to show it twice
@@ -321,7 +338,7 @@ async def finishGetLeaderboard(ws, response, args, message_object):
     try:
         tableData = discordTable(leaderboardData, changeDict={"LAST-SCORE" if isTeamData else "SCORE": "trophies", "rank": "#", "LAST-COUNTRY": "COUNTRY"}, orderList= ["rank", "teamName", "LAST-COUNTRY", "LAST-SCORE"] if isTeamData else ["rank", "userName", "COUNTRY", "SCORE"], numbered=False)
     except IndexError:
-        return ("Error: empty leaderboard", "There was no data to display.")
+        return bot_globals.error_messages["empty_leaderboard"]
     return ((args["country"].name if "country" in args else "Global") + " Season {seasonNum} leaderboard\n{tableHeader}".format(seasonNum=leaderboardData[0]["LAST-SEASON" if isTeamData else "SEASON"], tableHeader=tableData[0]), tableData[1])
 
 async def getLeaderboard(ws, args, message_object):
@@ -361,7 +378,7 @@ async def getLeaderboard(ws, args, message_object):
 
     baseReq["leaderboardShortCode"] = ".".join(shortCodeParts)
     if "offset" in args:
-        baseReq["offset"] = args["offset"]
+        baseReq["offset"] = int(args["offset"])
     await sendGolfblitzWs(ws, finishGetLeaderboard if not "stats" in args else finishGetLeaderboardStats, args, message_object, "get_leaderboard", baseReq)
 
 async def finishGetLeaderboardStats(ws, response, args, message_object):
@@ -496,12 +513,12 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
     body += "\n\nextra player details:\nplayer status: " + ("online" if bigPlayerData["online"] else "offline") + "\n"
     bigPlayerData = bigPlayerData["scriptData"] #there is a bit of stuff outside of the scriptData, but we probably won't need it
     corePlayerData = bigPlayerData["data"]
-    body += "friend code: " + (bigPlayerData["invite_code"] if "invite_code" in bigPlayerData else "none") + "\n"
-    body += "xp: " + str(corePlayerData["xp"]) + "\n"
+    body += "  * friend code: " + (bigPlayerData["invite_code"] if "invite_code" in bigPlayerData else "none") + "\n"
+    body += "  * xp: " + str(corePlayerData["xp"]) + "\n"
     sellTime = bigPlayerData["token_time"]/1000 - time.time() if "token_time" in bigPlayerData else 0
-    body += "player can sell cards {0}\n".format("in " + str(datetime.timedelta(seconds = round(sellTime))) if sellTime > 0 else "now") if sellTime else "this player has no data on when they can sell cards\n"
+    body += "  * player can sell cards {0}\n".format("in " + str(datetime.timedelta(seconds = round(sellTime))) if sellTime > 0 else "now") if sellTime else "this player has no data on when they can sell cards\n"
     packSlots = [bigPlayerData["slot1"], bigPlayerData["slot2"], bigPlayerData["slot3"], bigPlayerData["slot4"]]
-    body += "packs slots:\n"
+    body += "\npacks slots:\n"
     for i, pack in enumerate(packSlots):
         packStr = "  * {n} - {packType} pack".format(n=i+1, packType=bot_globals.cardpacks[pack["type"]] if pack["type"] != -1 else "empty")
         if pack["unlocking"]:
@@ -529,13 +546,13 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
     body += "\nhats:\n" if showAllCards else "\nnotable hats: \n"
     for id in corePlayerData["hats"]:
         if id in bot_globals.hats and (bot_globals.hats[id]["rarity"] >= 4 or showAllCards):
-            body += "  * " + bot_globals.hats[id]["name"]["en"] + " x" + str(corePlayerData["hats"][id]["count"]) + (" (unlocked)" if corePlayerData["hats"][id]["level"] else " (locked)") + "\n" + bot_globals.safe_split_str
+            body += "  * " + bot_globals.hats[id]["name"]["en"] + " x" + str(corePlayerData["hats"][id]["count"]).replace(".0", "") + (" (🔓)" if corePlayerData["hats"][id]["level"] else " (🔒)") + "\n" + bot_globals.safe_split_str
         elif not id in bot_globals.hats:
             body += "UNKNOWN HAT with id " + str(id) + "\n"
     body += "\ngolfers:\n" if showAllCards else "\nnotable golfers: \n"
     for id in corePlayerData["golfers"]:
         if id in bot_globals.golfers and (bot_globals.golfers[id]["rarity"] >= 4 or showAllCards):
-            body += "  * " + bot_globals.golfers[id]["name"]["en"] + " x" + str(corePlayerData["golfers"][id]["count"]) + (" (unlocked)" if corePlayerData["golfers"][id]["level"] else " (locked)") + "\n" + bot_globals.safe_split_str
+            body += "  * " + bot_globals.golfers[id]["name"]["en"] + " x" + str(corePlayerData["golfers"][id]["count"]).replace(".0", "") + (" (🔓)" if corePlayerData["golfers"][id]["level"] else " (🔒)") + "\n" + bot_globals.safe_split_str
         elif not id in bot_globals.golfers:
             body += "UNKNOWN GOLFER with id " + str(id) + "\n"
     if "emotes" in corePlayerData:
@@ -544,9 +561,9 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
             emoteStr = ""
             emoteObj = bot_globals.emotes[id]
             if "text" in emoteObj:
-                emoteStr = emoteObj["text"]["en"] + " dialog emote"
+                emoteStr = emoteObj["text"]["en"] + " (dialog)"
             else:
-                emoteStr = emoteObj["loc"]["en"] + " animated emote"
+                emoteStr = emoteObj["loc"]["en"] + " (animated)"
             body += "  * " + emoteStr + "\n" + bot_globals.safe_split_str
         body += "total number of emotes: {n}\n".format(n=len(corePlayerData["emotes"])) + bot_globals.safe_split_str
     body += "\ndaily deals:\n"
@@ -589,7 +606,11 @@ async def getPlayerInfo(ws, args, message_object):
             args["prev_function_data"].pop() #this info will not be necessary later on
         elif "rank" in args:
             args["count"] = 1
-            args["offset"] = int(args["rank"]) - 1
+            try:
+                args["offset"] = int(args["rank"]) - 1
+            except:
+                await sendMessage(ws, bot_globals.error_messages["player_info_error"], message_object, args)
+                return
             args["next_function"] = getPlayerInfo
             await getLeaderboard(ws, args, message_object)
             return
@@ -659,6 +680,20 @@ async def finishGetTeamInfo(ws, response, args, message_object):
     body += "\nmembers:\n\n"
     memberTableData = []
     sortFactor = args["sort"]
+    cardGroup = False
+    cardName = args["card"].lower() if "card" in args else ""
+    if sortFactor == "card":
+        if cardName in bot_globals.hats:
+            args["card"] = bot_globals.hats[cardName]
+            cardGroup = "hats"
+        elif cardName in bot_globals.golfers:
+            args["card"] = bot_globals.golfers[cardName]
+            cardGroup = "golfers"
+        elif cardName in bot_globals.emotes:
+            args["card"] = bot_globals.emotes[cardName]
+            cardGroup = "emotes"
+        else:
+            return bot_globals.error_messages["invalid_card"]
     sortFactorData = sortFactor + "data"
     for i, member in enumerate(teamData["members"]):
         mData = {"name": member["displayName"], "friend code": member["scriptData"]["invite_code"] if "invite_code" in member["scriptData"] else "none", "id": member["id"]}
@@ -678,6 +713,11 @@ async def finishGetTeamInfo(ws, response, args, message_object):
                 mData[sortFactorData] = round(member["scriptData"]["data"]["cards_sold"])
             elif sortFactor == "swishes":
                 mData[sortFactorData] = round(response[i+1]["scriptData"]["data"]["stats"]["swishes"])
+            elif sortFactor == "card":
+                try:
+                    mData[sortFactorData] = round(member["scriptData"]["data"][cardGroup][args["card"]]["count"])
+                except:
+                    mData[sortFactorData] = -1
             else: #the sort factor doesn't exist, so ignore it
                 break
         except:
@@ -688,7 +728,7 @@ async def finishGetTeamInfo(ws, response, args, message_object):
 
     memberTableData.sort(key=lambda k: k[sortFactorData], reverse=True)
     try:
-        tableData = discordTable(memberTableData, changeDict = {"cardssold": "cards_sold", "lastlogin": "last_login"}, orderList = [sortFactor, "name", "friend code", "id"], rowSegmentNum=1)
+        tableData = discordTable(memberTableData, changeDict = {"cardssold": "cards_sold", "lastlogin": "last_login", "card": cardName.replace(" ", "_")+"_cards"}, orderList = [sortFactor, "name", "friend code", "id"], rowSegmentNum=1)
         body += tableData[0] + "\n" + tableData[1] + bot_globals.safe_split_str
     except:
         body += "This team has no members.  How lonely :("
@@ -799,4 +839,4 @@ async def verifyAccount(ws, args, message_object):
         await directlySendMessage(ws, needsVerificationMsg, message_object)
     json.dump(bot_globals.user_configs, open(bot_globals.user_configs_path, 'w'))
 
-commands = {"getchallenge": getChallenge,"info": info, "help": help, "leaderboard": getLeaderboard, "leaderboardstats": getLeaderboardStats, "linkchat": linkChat, "listchallenges": listChallenges, "ping": ping, "playerinfo": getPlayerInfo, "ranks": getLeaderboard, "setprefix": setPrefix, "teaminfo": getTeamInfo, "teamsearch": teamSearch, "verifyaccount": verifyAccount}
+commands = {"botfriendlist": getBotFriends, "getchallenge": getChallenge,"info": info, "help": help, "leaderboard": getLeaderboard, "leaderboardstats": getLeaderboardStats, "linkchat": linkChat, "listchallenges": listChallenges, "ping": ping, "playerinfo": getPlayerInfo, "ranks": getLeaderboard, "setprefix": setPrefix, "teaminfo": getTeamInfo, "teamsearch": teamSearch, "verifyaccount": verifyAccount}
