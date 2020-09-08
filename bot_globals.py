@@ -214,7 +214,7 @@ def update_hats_and_golfers():
                     continue
                 if elem[key] in strings:
                     elem[key] = strings[elem[key]]
-                    outputDict[elem[key]["en"].lower()] = id
+                    outputDict[elem[key]["en"].lower().replace(" ", "")] = id
             outputDict[id] = elem.copy()
 
 if os.path.isdir(assets_path):

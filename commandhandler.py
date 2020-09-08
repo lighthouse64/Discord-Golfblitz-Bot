@@ -681,7 +681,7 @@ async def finishGetTeamInfo(ws, response, args, message_object):
     memberTableData = []
     sortFactor = args["sort"]
     cardGroup = False
-    cardName = args["card"].lower() if "card" in args else ""
+    cardName = args["card"].lower().replace(" ", "").replace("_", "") if "card" in args else ""
     if sortFactor == "card":
         if cardName in bot_globals.hats:
             args["card"] = bot_globals.hats[cardName]
@@ -715,9 +715,9 @@ async def finishGetTeamInfo(ws, response, args, message_object):
                 mData[sortFactorData] = round(response[i+1]["scriptData"]["data"]["stats"]["swishes"])
             elif sortFactor == "card":
                 try:
-                    mData[sortFactorData] = round(member["scriptData"]["data"][cardGroup][args["card"]]["count"])
+                    mData[sortFactorData] = round(member["scriptData"]["data"][cardGroup][args["card"]]["count"] * member["scriptData"]["data"][cardGroup][args["card"]]["level"])
                 except:
-                    mData[sortFactorData] = -1
+                    mData[sortFactorData] = 0
             else: #the sort factor doesn't exist, so ignore it
                 break
         except:
@@ -728,7 +728,7 @@ async def finishGetTeamInfo(ws, response, args, message_object):
 
     memberTableData.sort(key=lambda k: k[sortFactorData], reverse=True)
     try:
-        tableData = discordTable(memberTableData, changeDict = {"cardssold": "cards_sold", "lastlogin": "last_login", "card": cardName.replace(" ", "_")+"_cards"}, orderList = [sortFactor, "name", "friend code", "id"], rowSegmentNum=1)
+        tableData = discordTable(memberTableData, changeDict = {"cardssold": "cards_sold", "lastlogin": "last_login", "card": cardName.replace(" ", "_")+"_sellable_cards"}, orderList = [sortFactor, "name", "friend code", "id"], rowSegmentNum=1)
         body += tableData[0] + "\n" + tableData[1] + bot_globals.safe_split_str
     except:
         body += "This team has no members.  How lonely :("
