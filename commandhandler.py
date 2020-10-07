@@ -371,7 +371,10 @@ async def getLeaderboard(ws, args, message_object):
             shortCodeParts.append("LAST-COUNTRY")
         else:
             shortCodeParts.append("COUNTRY")
-        args["country"] = pycountry.countries.search_fuzzy(args["country"])[0]
+        if len(args["country"]) == 2:
+            args["country"] = pycountry.countries.get(alpha_2=args["country"])
+        else:
+            args["country"] = pycountry.countries.search_fuzzy(args["country"])[0]
         shortCodeParts.append(args["country"].alpha_2)
 
     if isTeam:
@@ -744,7 +747,7 @@ async def finishGetTeamInfo(ws, response, args, message_object):
             mData[sortFactor] = mData[sortFactorData]
         memberTableData.append(mData)
 
-    memberTableData.sort(key=lambda k: k[sortFactorData], reverse=True)
+    memberTableData.sort(key=lambda k: k[sortFactorData], reverse=not "reverse" in args)
     try:
         tableData = discordTable(memberTableData, changeDict = {"cardssold": "cards_sold", "lastlogin": "last_login", "card": cardName.replace(" ", "_")+"_sellable_cards"}, orderList = [sortFactor, "name", "id"], rowSegmentNum=1)
         body += tableData[0] + "\n" + tableData[1] + bot_globals.safe_split_str

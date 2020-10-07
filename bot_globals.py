@@ -128,6 +128,7 @@ Arguments:
   * id - the team's uuid (should be 24 characters long)
   * name - the team's name
   * rank - the rank that the team is in a given leaderboard
+  * reverse - reverse the order that team members are sorted by
   * showcardpool - toggles whether or not this command will display the team's cardpool
   * sort - sorts the team members output by a given factor (by default, this command will sort by trophies)
   * card - If the sort factor is card, then you need to specify by which specific card you are sorting by.
