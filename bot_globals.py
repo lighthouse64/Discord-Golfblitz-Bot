@@ -133,7 +133,7 @@ Arguments:
   * card - If the sort factor is card, then you need to specify by which specific card you are sorting by.
 
 Sort Factors:
-  * card - sort members by how many cards they have of the given card type
+  * card - sort members by how many cards they have of the given card type (this does not work anymore)
   * cardssold - sort members by the number of cards that they have sold
   * lastlogin - sort members by the time since they have last logged in
   * level - sort members by what level they are
@@ -161,6 +161,8 @@ info_msg_head = "Golfblitz Bot Information Page\n" + "-" * 30
 info_msg = '''This bot was created by lighthouse64#5760.
 This bot allows you to view enhanced leaderboard control, team information, and player data.  You can save these results to a json file for later parsing, too.  This bot works on both golf blitz and discord.  To talk to it on discord, use the invite link.  If you want to talk to it on golf blitz, add it as a friend and then join a friendly lobby with it.
 
+Around the middle of September, Noodlecake decided to "deprecate" the .GetTeamRequest function that this bot used, which caused playerinfo to become significantly worse.
+
 Bot Information
 ---------------
 group prefix: {prefix}
@@ -175,6 +177,7 @@ Other Credits
 ---------------
 Checkmate#0808: current bot profile picture
 FlutterThread8#0786: old bot profile picture
+The_Flash#6189: bot server host
 '''
 for command in command_short_descriptions:
     default_help_msg += "  * " + command + " " + command_short_descriptions[command] + "\n"

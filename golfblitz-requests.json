@@ -54,6 +54,12 @@
     "eventKey": "GET_CURRENT_SEASON_INFO",
     "requestId": "keepalive"
   },
+  "get_bad_team_info": {
+    "@class": ".LogEventRequest",
+    "eventKey": "GET_TEAM_REQUEST",
+    "team_id": "some_id",
+    "requestId": "thanks a lot"
+  },
   "get_player_info": {
     "@class": ".LogEventRequest",
     "eventKey": "PLAYER_INFO",

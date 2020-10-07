@@ -236,19 +236,28 @@ def genRewardStr(i, rewards):
             rewardStr += bot_globals.cardpacks[rewards[reward][1]] + " pack"
         elif reward == "emotes":
             emoteObj = rewards[reward][1]
-            emoteObj = bot_globals.emotes[str(emoteObj["identifier"])]
-            if "text" in emoteObj:
-                rewardStr += emoteObj["text"]["en"] + " dialog emote"
+            if str(emoteObj["identifier"]) in bot_globals.emotes:
+                emoteObj = bot_globals.emotes[str(emoteObj["identifier"])]
+                if "text" in emoteObj:
+                    rewardStr += emoteObj["text"]["en"] + " dialog emote"
+                else:
+                    rewardStr += emoteObj["loc"]["en"] + " animated emote"
             else:
-                rewardStr += emoteObj["loc"]["en"] + " animated emote"
+                rewardStr += "an emote that the bot doesn't know"
         elif reward == "golfers":
             golferObj = rewards[reward][1]
-            golferObj = bot_globals.golfers[str(golferObj["identifier"])]
-            rewardStr += golferObj["name"]["en"] + " golfer"
+            if str(golferObj["identifier"]) in bot_globals.golfers:
+                golferObj = bot_globals.golfers[str(golferObj["identifier"])]
+                rewardStr += golferObj["name"]["en"] + " golfer"
+            else:
+                rewardStr += "a golfer that the bot doesn't know"
         elif reward == "hats":
             hatObj = rewards[reward][1]
-            hatObj = bot_globals.hats[str(hatObj["identifier"])]
-            rewardStr += hatObj["name"]["en"] + " hat"
+            if str(hatObj["identifier"]) in bot_globals.hats:
+                hatObj = bot_globals.hats[str(hatObj["identifier"])]
+                rewardStr += hatObj["name"]["en"] + " hat"
+            else:
+                rewardStr += "a hat that the bot doesn't know"
         rewardStr += " & "
     return rewardStr
 
@@ -464,11 +473,12 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
     globalLeaderboardCode = "INDIVIDUAL_TROPHIES.SEASON." + str(bot_globals.curr_season)
     localLeaderboardCode = "INDIVIDUAL_TROPHIES_BY_COUNTRY.COUNTRY.{0}.SEASON.{1}".format(smallPlayerData["country"], bot_globals.curr_season)
     if smallPlayerData["team_id"]:
-        teamMembers = response[1]["teams"][0]["members"]
+        teamMembers = response[1]["scriptData"]["members"]
         for member in teamMembers:
             if member["id"] == playerId or member["displayName"].encode('ascii', 'ignore') == smallPlayerData["display_name"].encode('ascii', 'ignore') and "last_login" in smallPlayerData and "last_login" in member["scriptData"] and member["scriptData"]["last_login"] == smallPlayerData["last_login"]:
-                bigPlayerData = member
-                playerId = bigPlayerData["id"]
+                if member["id"] == response[1]["scriptData"]["owner-id"]["id"]: #we are now reduced to this sad state
+                    bigPlayerData = response[1]["scriptData"]["owner-id"]
+                playerId = member["id"]
                 break
     if playerId:
         if response[-1]["@class"] != ".GetLeaderboardEntriesResponse":
@@ -590,8 +600,8 @@ async def getExtraPlayerInfo(ws, args, message_object):
     teamId = args["prev_function_data"][0]["scriptData"]["data"]["team_id"]
     args["prev_function_data"][0]["scriptData"]["data"]["player_id"] = args["id"] #we will need the player id later
     if teamId:
-        baseReq = requests["get_team_data"].copy()
-        baseReq["teamId"] = teamId
+        baseReq = requests["get_bad_team_info"].copy()
+        baseReq["team_id"] = teamId
         await sendGolfblitzWs(ws, finishGetExtraPlayerInfo, args, message_object, "none", baseReq)
     else:
         if "json" in args:
@@ -654,17 +664,18 @@ async def finishGetTeamInfo(ws, response, args, message_object):
     if bot_globals.sortFactors[args["sort"]]:
         if not "prev_function_data" in args:
             args["prev_function_data"] = [response]
-        teamMembers = teamJson["teams"][0]["members"]
+        teamMembers = teamJson["scriptData"]["members"]
         memberIndx = len(response) - 1 if type(response) is list else 0
         if memberIndx < len(teamMembers):
             baseReq = requests["get_player_info"].copy()
             baseReq["player_id"] = teamMembers[memberIndx]["id"]
             await sendGolfblitzWs(ws, finishGetTeamInfo, args, message_object, "teaminfo", baseReq)
             return "skipJson"
+    print(teamJson)
     teamMetadata = teamJson["scriptData"]
-    teamData = teamJson["teams"][0]
+    teamData = teamMetadata
     header = "{name} {trophies} (id: {id})".format(name=teamData["teamName"][4:], trophies=int(teamMetadata["teamcurrenttrophies"]), id=teamData["teamId"])
-    body = teamMetadata["desc"] + "\nbasic team details: \n  * owner: " + teamData["owner"]["displayName"] + "\n"
+    body = teamMetadata["desc"] + "\nbasic team details: \n  * owner: " + teamData["owner-id"]["displayName"] + "\n"
     body += "  * location: " + teamMetadata["teamlocation"] + "\n"
     body += "  * required trophies: " + str(round(teamMetadata["teamrequiredtrophies"])) + "\n"
     body += "  * creation date: " + time.asctime(time.localtime(int(teamData["teamId"][:8], 16))) + " EST\n"
@@ -703,7 +714,7 @@ async def finishGetTeamInfo(ws, response, args, message_object):
             return bot_globals.error_messages["invalid_card"]
     sortFactorData = sortFactor + "data"
     for i, member in enumerate(teamData["members"]):
-        mData = {"name": member["displayName"], "friend code": member["scriptData"]["invite_code"] if "invite_code" in member["scriptData"] else "none", "id": member["id"]}
+        mData = {"name": member["displayName"], "id": member["id"]} # "friend code": member["scriptData"]["invite_code"] if "invite_code" in member["scriptData"] else "none",
         try:
             if sortFactor == "trophies":
                 mData[sortFactorData] = round(member["scriptData"]["data"]["trophies"])
@@ -735,7 +746,7 @@ async def finishGetTeamInfo(ws, response, args, message_object):
 
     memberTableData.sort(key=lambda k: k[sortFactorData], reverse=True)
     try:
-        tableData = discordTable(memberTableData, changeDict = {"cardssold": "cards_sold", "lastlogin": "last_login", "card": cardName.replace(" ", "_")+"_sellable_cards"}, orderList = [sortFactor, "name", "friend code", "id"], rowSegmentNum=1)
+        tableData = discordTable(memberTableData, changeDict = {"cardssold": "cards_sold", "lastlogin": "last_login", "card": cardName.replace(" ", "_")+"_sellable_cards"}, orderList = [sortFactor, "name", "id"], rowSegmentNum=1)
         body += tableData[0] + "\n" + tableData[1] + bot_globals.safe_split_str
     except:
         body += "This team has no members.  How lonely :("
@@ -782,8 +793,8 @@ async def getTeamInfo(ws, args, message_object):
                 errorMsg = bot_globals.error_messages["no_associated_player_id"].split("\n")
                 await sendMessage(ws, errorMsg, message_object, args)
                 return
-    baseReq = requests["get_team_data"].copy()
-    baseReq["teamId"] = teamId
+    baseReq = requests["get_bad_team_info"].copy()
+    baseReq["team_id"] = teamId
     await sendGolfblitzWs(ws, finishGetTeamInfo, args, message_object, "teaminfo", baseReq)
     return
 
