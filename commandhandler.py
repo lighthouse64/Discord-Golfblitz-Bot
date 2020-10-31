@@ -13,7 +13,8 @@ import pycountry
 requests = json.loads(open(os.path.join(sys.path[0], "golfblitz-requests.json"), 'r').read())
 
 async def sendGolfblitzWs(ws, response_function, args, message_object, function_key, request):
-        reqId = request["requestId"] = str(time.time())
+        reqId = request["requestId"] = str(int(time.time())) + "_2"
+        print(request)
         await ws.send(json.dumps(request))
         bot_globals.pending_requests[reqId] = (response_function, message_object, function_key, args)
 

@@ -20,7 +20,6 @@
     "@class": ".LeaderboardDataRequest",
     "entryCount": 100,
     "leaderboardShortCode": "",
-    "offset": 0,
     "requestId": "something"
   },
   "accept_friend_request": {
