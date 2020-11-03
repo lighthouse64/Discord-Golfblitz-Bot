@@ -484,11 +484,11 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
                     bigPlayerData = response[1]["scriptData"]["owner-id"]
                 playerId = member["id"]
                 break
-    if playerId:
-        if response[-1]["@class"] != ".GetLeaderboardEntriesResponse":
+    if playerId and response[-1]["@class"] != ".GameSparksErrorResponse":
+        if response[-1]["@class"] != ".LeaderboardEntriesResponse":
             baseReq = requests["get_player_rankings"].copy()
             baseReq["player"] = playerId
-            baseReq["leaderboards"].append(globalLeaderboardCode)
+            baseReq["leaderboards"] = [globalLeaderboardCode]
             baseReq["leaderboards"].append(localLeaderboardCode)
             await sendGolfblitzWs(ws, finishGetExtraPlayerInfo, args, message_object, "none", baseReq)
             return "skipJson"
