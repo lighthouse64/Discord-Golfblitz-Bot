@@ -95,13 +95,16 @@ def argParser(raw_args):
             if last_arg_indx > -1:
                 new_args[raw_args[last_arg_indx][1:]] = " ".join(raw_args[last_arg_indx + 1:i])
             last_arg_indx = i
+        else:
+            raw_args[i] = re.sub(r"^['\"“”’„]|['\"“”’„]$", "", arg)
     if raw_args:
         new_args[raw_args[last_arg_indx][1:]] =  " ".join(raw_args[last_arg_indx + 1:])
+    print(new_args)
     return new_args
 
 async def sendCommand(ws, message, discord_message):
-    #message = re.sub(r"^['\"“”’„]|['\"“”’„]$", "", message.lower())
-    messagedetails = [re.sub(r"^['\"“”’„]|['\"“”’„]$", "", m) for m in message[1:].lower().split()]
+    #re.sub(r"^['\"“”’„]|['\"“”’„]$", "", m)
+    messagedetails = [m for m in message[1:].lower().split()]
     print(messagedetails)
     print("Command sent: ", message, file=sys.stderr)
     if messagedetails[0] in commandhandler.commands:

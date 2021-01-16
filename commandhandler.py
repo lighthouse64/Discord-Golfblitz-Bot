@@ -740,6 +740,10 @@ async def finishGetTeamInfo(ws, response, args, message_object):
                     mData[sortFactorData] = round(member["scriptData"]["data"][cardGroup][args["card"]]["count"] * member["scriptData"]["data"][cardGroup][args["card"]]["level"])
                 except:
                     mData[sortFactorData] = 0
+            elif sortFactor == "rank":
+                rankNum = round(member["scriptData"]["data"]["team_rank"])
+                mData[sortFactorData] = rankNum
+                mData[sortFactor] = bot_globals.team_ranks[rankNum]
             else: #the sort factor doesn't exist, so ignore it
                 break
         except:
@@ -768,6 +772,9 @@ async def getTeamInfo(ws, args, message_object):
             else:
                 currData = currData["scriptData"]
                 if "teams" in currData:
+                    if not currData["teams"]:
+                        await sendMessage(ws, bot_globals.error_messages["team_not_found"], message_object, args)
+                        return
                     teamId = currData["teams"][-1]["teamId"]
                 else:
                     teamId = currData["data"]["team_id"]
