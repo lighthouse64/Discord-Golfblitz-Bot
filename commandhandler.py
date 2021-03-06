@@ -627,55 +627,55 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
                 emoteStr = emoteObj["loc"]["en"] + " (animated)"
             body += "  * " + emoteStr + "\n" + bot_globals.safe_split_str
         body += "total number of emotes: {n}\n".format(n=len(corePlayerData["emotes"])) + bot_globals.safe_split_str
-    body += "\nballs:\n"
-    #corePlayerData["balls"].pop(0)
-    for id in corePlayerData["balls"]:
-        if id == "0":
-            body += "  * Golf"
-        elif id in bot_globals.balls:
-            body += "  * " + bot_globals.balls[id]["name"]["en"]
-        else:
-            body += "UNKNOWN ball with id " + str(id)
-        body += "\n" + bot_globals.safe_split_str
-    body += "total number of balls: {n}\n".format(n=len(corePlayerData["balls"])) + bot_globals.safe_split_str
-    body += "\nwin fx:\n"
-    for id in corePlayerData["cup_effects"]:
-        if id == "0":
-            body += "  * Lil Bang"
-        elif id in bot_globals.cup_effects:
-            body += "  * " + bot_globals.cup_effects[id]["name"]["en"]
-        else:
-            body += "UNKNOWN win fx with id " + str(id)
-        body += "\n" + bot_globals.safe_split_str
-    body += "total number of win fx: {n}\n".format(n=len(corePlayerData["cup_effects"])) + bot_globals.safe_split_str
-    for id in corePlayerData["cup_sounds"]:
-        if id == "0":
-            body + "  * Golf Cup"
-        elif id in bot_globals.cup_sounds:
-            body += "  * " + bot_globals.cup_sounds[id]["name"]["en"]
-        else:
-            body += "UNKNOWN win sound with id " + str(id)
-        body += "\n" + bot_globals.safe_split_str
-    body += "total number of win sounds: {n}\n".format(n=len(corePlayerData["cup_sounds"])) + bot_globals.safe_split_str
-    for id in corePlayerData["swing_sounds"]:
-        if id == "0":
-            body += "  * Driver"
-        elif id in bot_globals.swing_sounds:
-            body += "  * " + bot_globals.swing_sounds[id]["name"]["en"]
-        else:
-            body += "UNKNOWN swing sound with id " + str(id)
-        body += "\n" + bot_globals.safe_split_str
-    body += "total number of swing sounds: {n}\n".format(n=len(corePlayerData["swing_sounds"])) + bot_globals.safe_split_str
-    body += "\ntrails:\n"
-    for id in corePlayerData["trails"]:
-        if id == "0":
-            body + "  * Streak"
-        elif id in bot_globals.trails:
-            body += "  * " + bot_globals.trails[id]["name"]["en"]
-        else:
-            body += "UNKNOWN trail with id " + str(id)
-        body += "\n" + bot_globals.safe_split_str
-    body += "total number of trails: {n}\n".format(n=len(corePlayerData["trails"])) + bot_globals.safe_split_str
+    if "balls" in corePlayerData: #make sure that this actually exists
+        body += "\nballs:\n"
+        for id in corePlayerData["balls"]:
+            if id == "0":
+                body += "  * Golf"
+            elif id in bot_globals.balls:
+                body += "  * " + bot_globals.balls[id]["name"]["en"]
+            else:
+                body += "UNKNOWN ball with id " + str(id)
+            body += "\n" + bot_globals.safe_split_str
+        body += "total number of balls: {n}\n".format(n=len(corePlayerData["balls"])) + bot_globals.safe_split_str
+        body += "\nwin fx:\n"
+        for id in corePlayerData["cup_effects"]:
+            if id == "0":
+                body += "  * Lil Bang"
+            elif id in bot_globals.cup_effects:
+                body += "  * " + bot_globals.cup_effects[id]["name"]["en"]
+            else:
+                body += "UNKNOWN win fx with id " + str(id)
+            body += "\n" + bot_globals.safe_split_str
+        body += "total number of win fx: {n}\n".format(n=len(corePlayerData["cup_effects"])) + bot_globals.safe_split_str
+        for id in corePlayerData["cup_sounds"]:
+            if id == "0":
+                body + "  * Golf Cup"
+            elif id in bot_globals.cup_sounds:
+                body += "  * " + bot_globals.cup_sounds[id]["name"]["en"]
+            else:
+                body += "UNKNOWN win sound with id " + str(id)
+            body += "\n" + bot_globals.safe_split_str
+        body += "total number of win sounds: {n}\n".format(n=len(corePlayerData["cup_sounds"])) + bot_globals.safe_split_str
+        for id in corePlayerData["swing_sounds"]:
+            if id == "0":
+                body += "  * Driver"
+            elif id in bot_globals.swing_sounds:
+                body += "  * " + bot_globals.swing_sounds[id]["name"]["en"]
+            else:
+                body += "UNKNOWN swing sound with id " + str(id)
+            body += "\n" + bot_globals.safe_split_str
+        body += "total number of swing sounds: {n}\n".format(n=len(corePlayerData["swing_sounds"])) + bot_globals.safe_split_str
+        body += "\ntrails:\n"
+        for id in corePlayerData["trails"]:
+            if id == "0":
+                body + "  * Streak"
+            elif id in bot_globals.trails:
+                body += "  * " + bot_globals.trails[id]["name"]["en"]
+            else:
+                body += "UNKNOWN trail with id " + str(id)
+            body += "\n" + bot_globals.safe_split_str
+        body += "total number of trails: {n}\n".format(n=len(corePlayerData["trails"])) + bot_globals.safe_split_str
 
     body += "\ndaily deals:\n"
     if "daily_deals" in bigPlayerData:
