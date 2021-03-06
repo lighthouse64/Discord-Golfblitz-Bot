@@ -22,6 +22,11 @@
     "leaderboardShortCode": "",
     "requestId": "something"
   },
+  "get_team_list": {
+    "@class": ".ListTeamsRequest",
+    "entryCount": 1,
+    "requestId": "something"
+  },
   "accept_friend_request": {
     "@class": ".LogEventRequest",
     "eventKey": "FRIEND_ACCEPT_FRIEND",

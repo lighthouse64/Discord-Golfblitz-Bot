@@ -259,6 +259,43 @@ def genRewardStr(i, rewards):
                 rewardStr += hatObj["name"]["en"] + " hat"
             else:
                 rewardStr += "a hat that the bot doesn't know"
+        elif reward == "balls":
+            ballObj = rewards[reward][1]
+            if str(ballObj["identifier"]) in bot_globals.balls:
+                ballObj = bot_globals.balls[str(ballObj["identifier"])]
+                rewardStr += ballObj["name"]["en"] + " ball"
+            else:
+                rewardStr += "a ball that the bot doesn't know"
+        elif reward == "cup_sounds":
+            cupsoundObj = rewards[reward][1]
+            if str(cupsoundObj["identifier"]) in bot_globals.cup_sounds:
+                cupsoundObj = bot_globals.cup_sounds[str(cupsoundObj["identifier"])]
+                rewardStr += cupsoundObj["name"]["en"] + " win sound"
+            else:
+                rewardStr += "a win sound that the bot doesn't know"
+        elif reward == "cup_effects":
+            cupeffectsObj =  rewards[reward][1]
+            if str(cupeffectsObj["identifier"]) in bot_globals.cup_effects:
+                cupeffectsObj = bot_globals.cup_effects[str(cupeffectsObj["identifier"])]
+                rewardStr += cupeffectsObj["name"]["en"] + " win fx"
+            else:
+                rewardStr += "a win fx that the bot doesn't know"
+        elif reward == "swing_sounds":
+            swingsoundObj = rewards[reward][1]
+            if str(swingsoundObj["identifier"]) in bot_globals.swing_sounds:
+                swingsoundObj = bot_globals.swing_sounds[str(swingsoundObj["identifier"])]
+                rewardStr += swingsoundObj["name"]["en"] + " swing sound"
+            else:
+                rewardStr += "a swing sound that the bot doesn't know"
+        elif reward == "trails":
+            trailObj = rewards[reward][1]
+            if str(trailObj["identifier"]) in bot_globals.trails:
+                trailObj = bot_globals.trails[str(trailObj["identifier"])]
+                rewardStr += trailObj["name"]["en"] + " trail"
+            else:
+                rewardStr += "a reward type that the bot doesn't know"
+        else:
+            rewardStr += "a reward type "
         rewardStr += " & "
     return rewardStr
 
@@ -476,7 +513,10 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
     rankData = False
     globalLeaderboardCode = "INDIVIDUAL_TROPHIES.SEASON." + str(bot_globals.curr_season)
     localLeaderboardCode = "INDIVIDUAL_TROPHIES_BY_COUNTRY.COUNTRY.{0}.SEASON.{1}".format(smallPlayerData["country"], bot_globals.curr_season)
-    if smallPlayerData["team_id"]:
+    if "index" in args:
+        bigPlayerData = response[1]["teams"][0]["owner"]
+        smallPlayerData["team_id"] = response[1]["teams"][0]["teamId"]
+    elif smallPlayerData["team_id"]:
         teamMembers = response[1]["scriptData"]["members"]
         for member in teamMembers:
             if member["id"] == playerId or member["displayName"].encode('ascii', 'ignore') == smallPlayerData["display_name"].encode('ascii', 'ignore') and "last_login" in smallPlayerData and "last_login" in member["scriptData"] and member["scriptData"]["last_login"] == smallPlayerData["last_login"]:
@@ -564,18 +604,18 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
                 body += "  * level {lvl} {powerup}\n".format(powerup=bot_globals.powerups[id]["name"]["en"], lvl=round(powerup["level"]))
     body += bot_globals.safe_split_str
     showAllCards = "allcards" in args
-    body += "\nhats:\n" if showAllCards else "\nnotable hats: \n"
+    body += "\nhats:\n" if showAllCards else "\nlegendary hats: \n"
     for id in corePlayerData["hats"]:
         if id in bot_globals.hats and (bot_globals.hats[id]["rarity"] >= 4 or showAllCards):
             body += "  * " + bot_globals.hats[id]["name"]["en"] + " x" + str(corePlayerData["hats"][id]["count"]).replace(".0", "") + (" (🔓)" if corePlayerData["hats"][id]["level"] else " (🔒)") + "\n" + bot_globals.safe_split_str
         elif not id in bot_globals.hats:
-            body += "UNKNOWN HAT with id " + str(id) + "\n"
-    body += "\ngolfers:\n" if showAllCards else "\nnotable golfers: \n"
+            body += "UNKNOWN HAT with id " + str(id) + "\n" + bot_globals.safe_split_str
+    body += "\ngolfers:\n" if showAllCards else "\nlegendary golfers: \n"
     for id in corePlayerData["golfers"]:
         if id in bot_globals.golfers and (bot_globals.golfers[id]["rarity"] >= 4 or showAllCards):
             body += "  * " + bot_globals.golfers[id]["name"]["en"] + " x" + str(corePlayerData["golfers"][id]["count"]).replace(".0", "") + (" (🔓)" if corePlayerData["golfers"][id]["level"] else " (🔒)") + "\n" + bot_globals.safe_split_str
         elif not id in bot_globals.golfers:
-            body += "UNKNOWN GOLFER with id " + str(id) + "\n"
+            body += "UNKNOWN GOLFER with id " + str(id) + "\n" + bot_globals.safe_split_str
     if "emotes" in corePlayerData:
         body += "\nemotes: \n"
         for id in corePlayerData["emotes"]:
@@ -587,6 +627,56 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
                 emoteStr = emoteObj["loc"]["en"] + " (animated)"
             body += "  * " + emoteStr + "\n" + bot_globals.safe_split_str
         body += "total number of emotes: {n}\n".format(n=len(corePlayerData["emotes"])) + bot_globals.safe_split_str
+    body += "\nballs:\n"
+    #corePlayerData["balls"].pop(0)
+    for id in corePlayerData["balls"]:
+        if id == "0":
+            body += "  * Golf"
+        elif id in bot_globals.balls:
+            body += "  * " + bot_globals.balls[id]["name"]["en"]
+        else:
+            body += "UNKNOWN ball with id " + str(id)
+        body += "\n" + bot_globals.safe_split_str
+    body += "total number of balls: {n}\n".format(n=len(corePlayerData["balls"])) + bot_globals.safe_split_str
+    body += "\nwin fx:\n"
+    for id in corePlayerData["cup_effects"]:
+        if id == "0":
+            body += "  * Lil Bang"
+        elif id in bot_globals.cup_effects:
+            body += "  * " + bot_globals.cup_effects[id]["name"]["en"]
+        else:
+            body += "UNKNOWN win fx with id " + str(id)
+        body += "\n" + bot_globals.safe_split_str
+    body += "total number of win fx: {n}\n".format(n=len(corePlayerData["cup_effects"])) + bot_globals.safe_split_str
+    for id in corePlayerData["cup_sounds"]:
+        if id == "0":
+            body + "  * Golf Cup"
+        elif id in bot_globals.cup_sounds:
+            body += "  * " + bot_globals.cup_sounds[id]["name"]["en"]
+        else:
+            body += "UNKNOWN win sound with id " + str(id)
+        body += "\n" + bot_globals.safe_split_str
+    body += "total number of win sounds: {n}\n".format(n=len(corePlayerData["cup_sounds"])) + bot_globals.safe_split_str
+    for id in corePlayerData["swing_sounds"]:
+        if id == "0":
+            body += "  * Driver"
+        elif id in bot_globals.swing_sounds:
+            body += "  * " + bot_globals.swing_sounds[id]["name"]["en"]
+        else:
+            body += "UNKNOWN swing sound with id " + str(id)
+        body += "\n" + bot_globals.safe_split_str
+    body += "total number of swing sounds: {n}\n".format(n=len(corePlayerData["swing_sounds"])) + bot_globals.safe_split_str
+    body += "\ntrails:\n"
+    for id in corePlayerData["trails"]:
+        if id == "0":
+            body + "  * Streak"
+        elif id in bot_globals.trails:
+            body += "  * " + bot_globals.trails[id]["name"]["en"]
+        else:
+            body += "UNKNOWN trail with id " + str(id)
+        body += "\n" + bot_globals.safe_split_str
+    body += "total number of trails: {n}\n".format(n=len(corePlayerData["trails"])) + bot_globals.safe_split_str
+
     body += "\ndaily deals:\n"
     if "daily_deals" in bigPlayerData:
         for deal in bigPlayerData["daily_deals"]:
@@ -598,6 +688,10 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
     return (head, body)
 
 async def getExtraPlayerInfo(ws, args, message_object):
+    if "index" in args:
+        temp = args["prev_function_data"][0]
+        args["prev_function_data"][0] = args["prev_function_data"][1]
+        args["prev_function_data"][1] = temp
     if not "scriptData" in args["prev_function_data"][0]:
         await sendMessage(ws, bot_globals.error_messages["invalid_player"], message_object, args)
         return
@@ -619,6 +713,9 @@ async def getPlayerInfo(ws, args, message_object):
     playerId = False
     if "id" in args and args["id"]:
         playerId = args["id"]
+    if "hasotherid" in args:
+        playerId = args["prev_function_data"][0]["teams"][0]["owner"]["id"]
+        args.pop("hasotherid")
     if not playerId:
         if type(message_object) is dict:
             playerId = message_object["fromId"]
@@ -643,6 +740,15 @@ async def getPlayerInfo(ws, args, message_object):
             args["prev_function_data"] = [data]
             args["id"] = False # we are going to have to handle this soon
             await getExtraPlayerInfo(ws, args, message_object)
+            return
+        elif "index" in args:
+            baseReq = requests["get_team_list"].copy()
+            baseReq["teamNameFilter"] = "FRIENDS"
+            baseReq["teamTypeFilter"] = "FRIENDS_LIST"
+            baseReq["offset"] = args["index"]
+            args["hasotherid"] = True
+            args["next_function"] = getPlayerInfo
+            await sendGolfblitzWs(ws, False, args, message_object, "none", baseReq)
             return
         else:
             if not playerId:

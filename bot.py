@@ -222,6 +222,8 @@ async def keepalive(ws):
             await ws.send(json.dumps(extraAssetsReq))
             extraAssetsReq["shortCode"] = "DOWNLOADABLES_EMOTES"
             await ws.send(json.dumps(extraAssetsReq))
+            extraAssetsReq["shortCode"] = "DOWNLOADABLES_ACCESSORIES_HD"
+            await ws.send(json.dumps(extraAssetsReq))
             lastDownloadablesTimeCheck = time.time()
             await commandhandler.getChallenge(ws, {"noreply": True}, {})
         try:
@@ -310,4 +312,5 @@ async def on_message(message):
             error[1] = error[1].format(waitTime)
             await commandhandler.sendMessage(default_ws, error, message, {})
 
+print("bot script has started running")
 bot.run(config["bot_token"])

@@ -25,7 +25,7 @@ if user_configs_file_content:
     user_configs = json.loads(user_configs_file_content)
 friendly_matches = {}
 team_ranks = ["", "rookie", "amateur", "pro", "co-captain", "captain"]
-error_messages = {"insufficient_permissions":"Error: Insufficient Permissions\nYou do not have sufficient permissions to perform this operation.","no_associated_player_id": "Error: No Associated Player Id:\nThe command failed because there is no golf blitz player associated with this account!", "page_not_found": "Error: Page Not Found\nThe page you are requesting does not exist", "commands_too_quick": "Error: You are sending commands too quickly!\nPlease wait {0} more seconds and then try again.", "invalid_code":("Error: Invalid Friend Code","The code you entered is either not a valid friend code or does not exist."), "invalid_player": ("Error: Invalid Player","The player you have requested does not exist."), "empty_leaderboard": ("Error: Empty Leaderboard", "The leaderboard you requested has no data to display."), "player_info_error": ("Error: Player Info Error", "Something went wrong while trying to request the specified player's info.  Perhaps you requested an invalid player?"), "invalid_card": ("Error: Invalid Card", "The card you wish to sort by does not exist."), "team_not_found": ("Error: Team Not Found", "The team you are searching for could not be found.  Try searching for a similar name with the teamsearch command.")}
+error_messages = {"insufficient_permissions":"Error: Insufficient Permissions\nYou do not have sufficient permissions to perform this operation.","no_associated_player_id": "Error: No Associated Player Id:\nThe command failed because there is no golf blitz player associated with this account! (or you just forgot to put in a valid parameter)", "page_not_found": "Error: Page Not Found\nThe page you are requesting does not exist", "commands_too_quick": "Error: You are sending commands too quickly!\nPlease wait {0} more seconds and then try again.", "invalid_code":("Error: Invalid Friend Code","The code you entered is either not a valid friend code or does not exist."), "invalid_player": ("Error: Invalid Player","The player you have requested does not exist."), "empty_leaderboard": ("Error: Empty Leaderboard", "The leaderboard you requested has no data to display."), "player_info_error": ("Error: Player Info Error", "Something went wrong while trying to request the specified player's info.  Perhaps you requested an invalid player?"), "invalid_card": ("Error: Invalid Card", "The card you wish to sort by does not exist."), "team_not_found": ("Error: Team Not Found", "The team you are searching for could not be found.  Try searching for a similar name with the teamsearch command.")}
 command_data_path = os.path.join(sys.path[0], "command_data.json")
 command_data = json.load(open(command_data_path, 'r')) if os.path.isfile(command_data_path) else {}
 command_short_descriptions = {"botfriendlist": "[-nosort]", "getchallenge": "[-event <event_name>]", "help": "[-command <command name>]", "leaderboard": "[-count <number (max is 10000)>] [-country <country accronym>] [-offset <number>] [-season <number>] [-team]", "leaderboardstats": "same syntax as leaderboard", "listchallenges": "", "playerinfo": "[-code <friend code>] or [-id <player uuid>] or [-rank <number>] [-country <country>] [-allcards]", "setprefix": "-prefix <prefix str>", "teaminfo": "[-id <team id>] or [-name <team name>] or [-rank <leaderboard rank>] [-showcardpool] [-sort <sort factor>]", "teamsearch": "-name <team name>", "verifyaccount": "-id <id of other client>"}
@@ -190,9 +190,22 @@ golfers = {}
 emotes = {}
 powerups = {}
 cardpacks = {}
+balls = {}
+cup_effects = {}
+cup_sounds = {}
+swing_sounds = {}
+trails = {}
 def update_hats_and_golfers():
     global strings, hats, golfers, emotes, cardpacks
-    string_paths = [os.path.join(assets_path, "strings.csv"), os.path.join(extra_assets_path, "emote_strings.csv"), os.path.join(extra_assets_path, "golfer_strings.csv"), os.path.join(extra_assets_path, "hat_strings.csv")]
+    string_paths = [os.path.join(assets_path, "strings.csv")]
+    base_paths = [os.path.join(assets_path, "emotesdata.json"), os.path.join(assets_path, "golfers.json"), os.path.join(assets_path, "hats.json"), os.path.join(assets_path, "cards.json")]
+
+    for entry in os.scandir(extra_assets_path):
+        if entry.path.endswith(".csv"):
+            string_paths.append(entry.path)
+        elif entry.path.endswith(".json") and not entry.path.endswith("downloaded_stickperson.json") and not entry.path.endswith("emotes.json"):
+            base_paths.append(entry.path)
+
     for path in string_paths:
         reader = csv.reader(open(path, 'r', encoding="utf-8"), delimiter=",")
         head = next(reader)
@@ -201,7 +214,6 @@ def update_hats_and_golfers():
             for i in range(1, len(row)):
                 strings[row[0]][head[i]] = row[i]
     cardpacks = {1: strings["UI_PACK_TYPE_ONE"]["en"], 2: strings["UI_PACK_TYPE_TWO"]["en"], 3: strings["UI_PACK_TYPE_THREE"]["en"], 4: strings["UI_PACK_TYPE_FOUR"]["en"], 5: strings["UI_PACK_TYPE_FIVE"]["en"], 6: strings["UI_PACK_TYPE_SIX"]["en"], 7: strings["UI_PACK_TYPE_SEVEN"]["en"]} #pack type 6 is a star pack and 7 is a free pack
-    base_paths = [os.path.join(assets_path, "emotesdata.json"), os.path.join(assets_path, "golfers.json"), os.path.join(assets_path, "hats.json"), os.path.join(assets_path, "cards.json"), os.path.join(extra_assets_path, "emotesdata.json"), os.path.join(extra_assets_path, "golfers.json"), os.path.join(extra_assets_path, "hats.json")]
     for path in base_paths:
         if os.path.isfile(path):
             partial = json.loads(open(path, 'r').read())
@@ -213,6 +225,16 @@ def update_hats_and_golfers():
             partial = partial["emotes"]
         elif "cards" in path:
             outputDict = powerups
+        elif "balls" in path:
+            outputDict = balls
+        elif "cup_effects" in path:
+            outputDict = cup_effects
+        elif "cup_sounds" in path:
+            outputDict = cup_sounds
+        elif "swing_sounds" in path:
+            outputDict = swing_sounds
+        elif "trails" in path:
+            outputDict = trails
         for id in partial:
             elem = partial[id]
             for key in elem:
