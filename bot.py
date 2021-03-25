@@ -216,11 +216,11 @@ async def keepalive(ws):
             print("checking for new assets")
             Thread(target=bgDownloadAssets).start()
             extraAssetsReq = commandhandler.requests["get_extra_assets"]
-            extraAssetsReq["shortCode"] = "DOWNLOADABLES_HATS_HD"
+            extraAssetsReq["shortCode"] = "NEW_DOWNLOADABLES_HATS_HD"
             await ws.send(json.dumps(extraAssetsReq))
-            extraAssetsReq["shortCode"] = "DOWNLOADABLES_GOLFERS_HD"
+            extraAssetsReq["shortCode"] = "NEW_DOWNLOADABLES_GOLFERS_HD"
             await ws.send(json.dumps(extraAssetsReq))
-            extraAssetsReq["shortCode"] = "DOWNLOADABLES_EMOTES"
+            extraAssetsReq["shortCode"] = "NEW_DOWNLOADABLES_EMOTES"
             await ws.send(json.dumps(extraAssetsReq))
             extraAssetsReq["shortCode"] = "DOWNLOADABLES_ACCESSORIES_HD"
             await ws.send(json.dumps(extraAssetsReq))

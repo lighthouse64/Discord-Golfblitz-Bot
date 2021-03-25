@@ -648,6 +648,7 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
                 body += "UNKNOWN win fx with id " + str(id)
             body += "\n" + bot_globals.safe_split_str
         body += "total number of win fx: {n}\n".format(n=len(corePlayerData["cup_effects"])) + bot_globals.safe_split_str
+        body += "\nwin sounds:\n"
         for id in corePlayerData["cup_sounds"]:
             if id == "0":
                 body + "  * Golf Cup"
@@ -657,6 +658,7 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
                 body += "UNKNOWN win sound with id " + str(id)
             body += "\n" + bot_globals.safe_split_str
         body += "total number of win sounds: {n}\n".format(n=len(corePlayerData["cup_sounds"])) + bot_globals.safe_split_str
+        body += "\nswing sounds\n"
         for id in corePlayerData["swing_sounds"]:
             if id == "0":
                 body += "  * Driver"
