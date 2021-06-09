@@ -14,6 +14,7 @@ from bs4 import BeautifulSoup
 import zipfile
 import re
 import commandhandler #bot commands
+import cloudscraper
 
 confPath = os.path.join(sys.path[0], "configuration")
 bot_globals.bot_config = config = json.loads(open(os.path.join(confPath, "main-configuration.json"), 'r').read())
@@ -39,7 +40,8 @@ for root, dir, files in os.walk(confPath):
 
 def bgDownloadAssets():
     global config
-    apkPage = BeautifulSoup(requests.get("https://apkpure.com/golf-blitz/com.noodlecake.ssg4/download").text, features="html.parser")
+    scraper = cloudscraper.create_scraper()
+    apkPage = BeautifulSoup(scraper.get("https://apkpure.com/golf-blitz/com.noodlecake.ssg4/download").text, features="html.parser")
     apkLink = apkPage.find("a", id="download_link")['href']
     apkVersion = apkPage.find("span", attrs={"class": "file"}).text
     if not "apkVersion" in config:
@@ -47,7 +49,7 @@ def bgDownloadAssets():
     if config["apkVersion"] != apkVersion:
         print("downloading new apk for assets")
         apkPath = os.path.join(bot_globals.resources_path, "golfblitz.apk")
-        with requests.get(apkLink, stream=True) as dl:
+        with scraper.get(apkLink, stream=True) as dl: #requests.get(apkLink, stream=True)
             with open(apkPath, "wb") as f:
                 for chunk in dl.iter_content(chunk_size=16384):
                     f.write(chunk)
@@ -240,6 +242,7 @@ async def keepalive(ws):
 async def getResponses(ws):
     while True:
         try:
+            terminated_session = False
             response = await ws.recv()
             responseJson = json.loads(response)
             if "requestId" in responseJson and responseJson["requestId"] in bot_globals.pending_requests:
@@ -250,6 +253,7 @@ async def getResponses(ws):
                 print("keepalive request was received")
             elif responseJson["@class"] == ".SessionTerminatedMessage":
                 print("session terminated, restart 2")
+                terminated_session = True
                 break
             elif responseJson["@class"] == ".GetDownloadableResponse":
                 Thread(target=bgDownloadExtraAssets, args=(responseJson,)).start()
@@ -275,6 +279,8 @@ async def getResponses(ws):
                     await onGolfblitzMessage(ws, responseJson)
             else:
                 print("unknown response", responseJson)
+            if terminated_session:
+                break
         except:
             traceback.print_exc()
             print("bot had an issue, restart 2")
