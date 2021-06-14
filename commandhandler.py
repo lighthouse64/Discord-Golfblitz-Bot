@@ -581,7 +581,7 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
     packSlots = [bigPlayerData["slot1"], bigPlayerData["slot2"], bigPlayerData["slot3"], bigPlayerData["slot4"]]
     body += "\npacks slots:\n"
     for i, pack in enumerate(packSlots):
-        packStr = "  * {n} - {packType} pack".format(n=i+1, packType=bot_globals.cardpacks[pack["type"]] if pack["type"] != -1 else "empty")
+        packStr = "  * {n} - {packType} pack".format(n=i+1, packType= "unknown pack " + str(pack["type"])  if not pack["type"] in bot_globals.cardpacks else bot_globals.cardpacks[pack["type"]])
         if pack["unlocking"]:
             timechg = pack["available_time"]/1000 - time.time()
             packStr += " (currently being unlocked, available in {timestr})".format(timestr=datetime.timedelta(seconds = round(timechg))) if timechg > 0 else "(ready to open)"
