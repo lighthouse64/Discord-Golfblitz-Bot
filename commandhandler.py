@@ -519,7 +519,7 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
     elif smallPlayerData["team_id"]:
         teamMembers = response[1]["scriptData"]["members"]
         for member in teamMembers:
-            if member["id"] == playerId or member["displayName"].encode('ascii', 'ignore') == smallPlayerData["display_name"].encode('ascii', 'ignore') and "last_login" in smallPlayerData and "last_login" in member["scriptData"] and member["scriptData"]["last_login"] == smallPlayerData["last_login"]:
+            if member["id"] == playerId or member["displayName"] != None and smallPlayerData["display_name"] != None and member["displayName"].encode('ascii', 'ignore') == smallPlayerData["display_name"].encode('ascii', 'ignore') and "last_login" in smallPlayerData and "last_login" in member["scriptData"] and member["scriptData"]["last_login"] == smallPlayerData["last_login"]:
                 if member["id"] == response[1]["scriptData"]["owner-id"]["id"]: #we are now reduced to this sad state
                     bigPlayerData = response[1]["scriptData"]["owner-id"]
                 playerId = member["id"]
@@ -549,6 +549,9 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
         body += "\n  * golfer: " + bot_globals.golfers[str(smallPlayerData["golfer"])]["name"]["en"] + "\n"
     except:
         body += "\n  * golfer: unknown golfer\n"
+
+    body += "  * premium player: " + ("yes" if smallPlayerData["is_premium"] else "no") + "\n"
+
     body += "\nplayer attributes:\n  * level: {level}\n  * power: {power}\n  * speed: {speed}\n  * accuracy: {accuracy}\n  * cooldown: {cooldown}\n".format(level=smallPlayerData["level"], power=smallPlayerData["attr"]["attr_pwr"], speed=smallPlayerData["attr"]["attr_speed"], accuracy=smallPlayerData["attr"]["attr_acc"], cooldown=smallPlayerData["attr"]["attr_cool"])
     stats = smallPlayerData["stats"]
     body += "\nplayer stats:\n"
@@ -584,7 +587,7 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
         packStr = "  * {n} - {packType} pack".format(n=i+1, packType= "unknown pack " + str(pack["type"])  if not pack["type"] in bot_globals.cardpacks else bot_globals.cardpacks[pack["type"]])
         if pack["unlocking"]:
             timechg = pack["available_time"]/1000 - time.time()
-            packStr += " (currently being unlocked, available in {timestr})".format(timestr=datetime.timedelta(seconds = round(timechg))) if timechg > 0 else "(ready to open)"
+            packStr += " (currently being unlocked, available in {timestr})".format(timestr=datetime.timedelta(seconds = round(timechg))) if timechg > 0 else " (ready to open)"
         body += packStr + "\n"
     starpack = bigPlayerData["pinpack"]
     body += "star pack: "
