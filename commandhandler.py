@@ -19,7 +19,7 @@ async def sendGolfblitzWs(ws, response_function, args, message_object, function_
         bot_globals.pending_requests[reqId] = (response_function, message_object, function_key, args)
 
 async def finishDiscordCommand(response, message, request_args):
-    if "json" in request_args:
+    if "rawdata" in request_args:
         try:
             attachment = discord.File(io.StringIO(response), filename="response.json")
             await message.channel.send("Resulting json file", file=attachment)
@@ -91,7 +91,7 @@ async def finishCommand(ws, responseJson, offlineData=False):
             await nextFunction(ws, request_args, sendback_info)
             return
         response = await requestInfo[0](ws, responseJson, request_args, sendback_info)
-        if "json" in request_args and response != "skipJson":
+        if "rawdata" in request_args and response != "skipJson":
             response = json.dumps(responseJson, ensure_ascii=False)
         if response != "skipJson":
             await sendMessage(ws, response, sendback_info, request_args)
@@ -111,7 +111,7 @@ async def sendMessage(ws, message, message_object, request_args, arg_aliases={})
             request_args[arg_aliases[arg]] = request_args[arg]
     disableCodeFormat = "noformat" in request_args or isGolfblitzMessage
     pagesToSend = message
-    if not "json" in request_args:
+    if not "rawdata" in request_args:
         header = message[0] + "\n\n" if message[0] else ""
         message = message[1].split(bot_globals.safe_split_str)
         maxpagelen = (5000 if isGolfblitzMessage else (2000 if disableCodeFormat else 1991)) - len(header)
@@ -345,6 +345,32 @@ async def getChallenge(ws, args, message_object):
         await finishCommand(ws, baseReq, offlineData=bot_globals.command_data["get_challenge"][args["event"].lower()])
     else:
         await ws.send(json.dumps(baseReq))
+
+async def finishGetDownloadablesZip(ws, response, args, message_object):
+    header = args["type"].upper() + " zip link (lasts 10 minutes)"
+
+    if not "url" in response:
+        return bot_globals.error_messages["invalid_downloadable"]
+
+    body = response["url"]
+    return (header, body)
+
+async def getDownloadablesZip(ws, args, message_object):
+    baseReq = requests["get_extra_assets"]
+    baseReq["shortCode"] = "DOWNLOADABLES_"
+
+    if "type" in args:
+        baseReq["shortCode"] += args["type"].upper()
+    else:
+        baseReq["shortCode"] += "GOLFERS"
+
+    if not baseReq["shortCode"].endswith("ACCESSORIES"):
+        baseReq["shortCode"] = "NEW_" + baseReq["shortCode"]
+
+    if not baseReq["shortCode"].endswith("EMOTES"):
+        baseReq["shortCode"] += "_IPADHD"
+
+    await sendGolfblitzWs(ws, finishGetDownloadablesZip, args, message_object, "get_downloadables_zip", baseReq)
 
 async def help(ws, args, message_object):
     if "c" in args:
@@ -707,7 +733,7 @@ async def getExtraPlayerInfo(ws, args, message_object):
         baseReq["team_id"] = teamId
         await sendGolfblitzWs(ws, finishGetExtraPlayerInfo, args, message_object, "none", baseReq)
     else:
-        if "json" in args:
+        if "rawdata" in args:
             message = json.dumps(args["prev_function_data"])
         else:
             message = await finishGetExtraPlayerInfo(ws, args["prev_function_data"], args, message_object)
@@ -979,4 +1005,4 @@ async def verifyAccount(ws, args, message_object):
         await directlySendMessage(ws, needsVerificationMsg, message_object)
     json.dump(bot_globals.user_configs, open(bot_globals.user_configs_path, 'w'))
 
-commands = {"botfriendlist": getBotFriends, "getchallenge": getChallenge,"info": info, "help": help, "leaderboard": getLeaderboard, "leaderboardstats": getLeaderboardStats, "linkchat": linkChat, "listchallenges": listChallenges, "ping": ping, "playerinfo": getPlayerInfo, "ranks": getLeaderboard, "setprefix": setPrefix, "teaminfo": getTeamInfo, "teamsearch": teamSearch, "verifyaccount": verifyAccount}
+commands = {"botfriendlist": getBotFriends, "getchallenge": getChallenge, "downloadableslink": getDownloadablesZip, "help": help, "info": info, "leaderboard": getLeaderboard, "leaderboardstats": getLeaderboardStats, "linkchat": linkChat, "listchallenges": listChallenges, "ping": ping, "playerinfo": getPlayerInfo, "ranks": getLeaderboard, "setprefix": setPrefix, "teaminfo": getTeamInfo, "teamsearch": teamSearch, "verifyaccount": verifyAccount}

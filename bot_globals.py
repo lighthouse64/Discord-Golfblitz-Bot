@@ -25,16 +25,16 @@ if user_configs_file_content:
     user_configs = json.loads(user_configs_file_content)
 friendly_matches = {}
 team_ranks = ["", "rookie", "amateur", "pro", "co-captain", "captain"]
-error_messages = {"insufficient_permissions":"Error: Insufficient Permissions\nYou do not have sufficient permissions to perform this operation.","no_associated_player_id": "Error: No Associated Player Id:\nThe command failed because there is no golf blitz player associated with this account! (or you just forgot to put in a valid parameter)", "page_not_found": "Error: Page Not Found\nThe page you are requesting does not exist", "commands_too_quick": "Error: You are sending commands too quickly!\nPlease wait {0} more seconds and then try again.", "invalid_code":("Error: Invalid Friend Code","The code you entered is either not a valid friend code or does not exist."), "invalid_player": ("Error: Invalid Player","The player you have requested does not exist."), "empty_leaderboard": ("Error: Empty Leaderboard", "The leaderboard you requested has no data to display."), "player_info_error": ("Error: Player Info Error", "Something went wrong while trying to request the specified player's info.  Perhaps you requested an invalid player?"), "invalid_card": ("Error: Invalid Card", "The card you wish to sort by does not exist."), "team_not_found": ("Error: Team Not Found", "The team you are searching for could not be found.  Try searching for a similar name with the teamsearch command.")}
+error_messages = {"insufficient_permissions":"Error: Insufficient Permissions\nYou do not have sufficient permissions to perform this operation.","no_associated_player_id": "Error: No Associated Player Id:\nThe command failed because there is no golf blitz player associated with this account! (or you just forgot to put in a valid parameter)", "page_not_found": "Error: Page Not Found\nThe page you are requesting does not exist", "commands_too_quick": "Error: You are sending commands too quickly!\nPlease wait {0} more seconds and then try again.", "invalid_code":("Error: Invalid Friend Code","The code you entered is either not a valid friend code or does not exist."), "invalid_player": ("Error: Invalid Player","The player you have requested does not exist."), "empty_leaderboard": ("Error: Empty Leaderboard", "The leaderboard you requested has no data to display."), "player_info_error": ("Error: Player Info Error", "Something went wrong while trying to request the specified player's info.  Perhaps you requested an invalid player?"), "invalid_card": ("Error: Invalid Card", "The card you wish to sort by does not exist."), "team_not_found": ("Error: Team Not Found", "The team you are searching for could not be found.  Try searching for a similar name with the teamsearch command."), "invalid_downloadable": ("Error: Invalid Downloadable Type", "The downloadable type that you requested does not exist.")}
 command_data_path = os.path.join(sys.path[0], "command_data.json")
 command_data = json.load(open(command_data_path, 'r')) if os.path.isfile(command_data_path) else {}
-command_short_descriptions = {"botfriendlist": "[-nosort]", "getchallenge": "[-event <event_name>]", "help": "[-command <command name>]", "leaderboard": "[-count <number (max is 10000)>] [-country <country accronym>] [-offset <number>] [-season <number>] [-team]", "leaderboardstats": "same syntax as leaderboard", "listchallenges": "", "playerinfo": "[-code <friend code>] or [-id <player uuid>] or [-rank <number>] [-country <country>] [-allcards]", "setprefix": "-prefix <prefix str>", "teaminfo": "[-id <team id>] or [-name <team name>] or [-rank <leaderboard rank>] [-showcardpool] [-sort <sort factor>]", "teamsearch": "-name <team name>", "verifyaccount": "-id <id of other client>"}
+command_short_descriptions = {"botfriendlist": "[-nosort]", "getchallenge": "[-event <event name>]", "downloadableslink": "[-type >downloadable type>]", "help": "[-command <command name>]", "leaderboard": "[-count <number (max is 1000)>] [-country <country accronym>] [-offset <number>] [-season <number>] [-team]", "leaderboardstats": "same syntax as leaderboard", "listchallenges": "", "playerinfo": "[-code <friend code>] or [-id <player uuid>] or [-rank <number>] [-country <country>] [-allcards]", "setprefix": "-prefix <prefix str>", "teaminfo": "[-id <team id>] or [-name <team name>] or [-rank <leaderboard rank>] [-showcardpool] [-sort <sort factor>]", "teamsearch": "-name <team name>", "verifyaccount": "-id <id of other client>"}
 default_help_msg_head = "Golf Blitz Bot Help Page"
 default_help_msg = '''User Verification Status:
 {0}
 
 Global Arguments:
-  * -json (only works on discord)
+  * -json (as noodlecake might say, "dePrEcATeD", due to privacy concerns)
   * -pages or -page <number or start_page-end_page or all>,<page_elem>,...
   * -noformat (only has an effect on discord, removes the code formatting around the output)
 
@@ -58,9 +58,21 @@ Usage: getchallenge [-event <event name>]
 Arguments:
   * event (optional) - the event name from listchallenges
 '''),
-"info": ("info help page", '''Display information about the bot.
-Usage: info
-Arguments: none
+"downloadableslink": ("downloadableslink help page", '''Get the downloadables link to the zips that golf blitz uses for new assets.
+Usage: downloadableslink [-type <downloadable type>]
+
+Arguments:
+  * type (optional) - the downloadable type to get (the default is golfers)
+
+Downloadable Types:
+  * accessories
+  * emotes
+  * golfers
+  * hats
+  * themes
+
+ Examples:
+ ?downloadableslink -type emotes
 '''),
 "help": ("help help page", '''Get detailed information about how to use a command, or find the list of commands.
 Usage: help [-command <command>]
@@ -74,6 +86,10 @@ Argument Aliases:
 Examples:
 ?help -command help (get this page)
 '''),
+"info": ("info help page", '''Display information about the bot.
+Usage: info
+Arguments: none
+'''),
 "leaderboard": ("leaderboard help page", '''Get a leaderboard of teams or individuals that has up to 10000 entries.
 Usage: leaderboard": "[-count <number (max is 10000)>] [-country <country accronym>] [-offset <number>] [-season <number>] [-team]
 
@@ -82,7 +98,7 @@ Command Aliases:
 Arguments (all are optional):
   * count - the number of entries in the leaderboard
   * country - get the leaderboard for a specified country using its two letter accronym
-  * offset - start the leaderboard entries after the given rank offset value
+  * offset - start the leaderboard entries after the given rank offset value (probably doesn't work)
   * season - which season this leaderboard applies to
   * team - show the leaderboard for teams instead of the leaderboard for individual players
 
