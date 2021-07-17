@@ -249,6 +249,7 @@ async def getResponses(ws):
             if "@class" in responseJson and responseJson["@class"] == ".LeaderboardDataResponse":
                 for elem in responseJson["data"]:
                     elem["city"] = None
+                    elem["country"] = None
             if "requestId" in responseJson and responseJson["requestId"] in bot_globals.pending_requests:
                 await commandhandler.finishCommand(ws, responseJson)
             elif "requestId" in responseJson and responseJson["requestId"] == "keepalive":

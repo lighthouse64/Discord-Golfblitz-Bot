@@ -389,7 +389,7 @@ async def info(ws, args, message_object):
     if type(message_object) is dict:
         groupId = message_object["teamId"]
     else:
-        groupId = str(message_object.guild.id)
+        groupId = str(message_object.guild.id) if message_object.guild != None else None
     if groupId in bot_globals.group_configs and "prefix" in bot_globals.group_configs[groupId]:
         groupPrefix = bot_globals.group_configs[groupId]["prefix"]
     await sendMessage(ws, (bot_globals.info_msg_head, bot_globals.info_msg.format(prefix=groupPrefix)), message_object, args)
@@ -812,7 +812,10 @@ async def finishGetTeamInfo(ws, response, args, message_object):
             baseReq["player_id"] = teamMembers[memberIndx]["id"]
             await sendGolfblitzWs(ws, finishGetTeamInfo, args, message_object, "teaminfo", baseReq)
             return "skipJson"
-    print(teamJson)
+
+    if not "scriptData" in teamJson:
+        return bot_globals.error_messages["team_not_found"]
+
     teamMetadata = teamJson["scriptData"]
     teamData = teamMetadata
     header = "{name} {trophies} (id: {id})".format(name=teamData["teamName"][4:], trophies=int(teamMetadata["teamcurrenttrophies"]), id=teamData["teamId"])
