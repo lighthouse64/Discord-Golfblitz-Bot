@@ -4,9 +4,9 @@ import asyncio, websockets, json, hmac, hashlib, base64, requests
 game_entryURL = "wss://live-f351468gBSWz.ws.gamesparks.net/ws/device/f351468gBSWz"
 
 async def test():
-    ws1 = await websockets.connect(game_entryURL)
+    ws1 = await websockets.connect(game_entryURL, compression=None)
     info = await ws1.recv()
-    ws2 = await websockets.connect(json.loads(info)["connectUrl"])
+    ws2 = await websockets.connect(json.loads(info)["connectUrl"], compression=None)
     info2 = await ws2.recv() #
     outobj = {"@class": ".AuthenticatedConnectRequest", "hmac": base64.b64encode(hmac.new(b'a3insvuyMEertN6BV14ys1K05qcfaaoN', json.loads(info2)["nonce"].encode('utf-8'), hashlib.sha256).digest()).decode('utf-8'), "os": "uh"}
     await ws2.send(json.dumps(outobj))
