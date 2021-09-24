@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import asyncio, websockets, json, hmac, hashlib, base64, requests
 
 game_entryURL = "wss://live-f351468gBSWz.ws.gamesparks.net/ws/device/f351468gBSWz"
