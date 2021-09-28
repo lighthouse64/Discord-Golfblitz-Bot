@@ -983,6 +983,9 @@ async def setPrefix(ws, args, message_object):
 
 async def verifyAccount(ws, args, message_object):
     id = False
+    if not "id" in args:
+        await sendMessage(ws, bot_globals.error_messages["no_id"], message_object, args)
+        return
     externalId = args["id"]
     needsVerificationMsg = "Your account is not verified yet.  "
     if type(message_object) is dict: #golf blitz message
