@@ -229,7 +229,9 @@ def update_hats_and_golfers():
             strings[row[0]] = {}
             for i in range(1, len(row)):
                 strings[row[0]][head[i]] = row[i]
-    cardpacks = {-1: "EMPTY", 1: strings["UI_PACK_TYPE_ONE"]["en"], 2: strings["UI_PACK_TYPE_TWO"]["en"], 3: strings["UI_PACK_TYPE_THREE"]["en"], 4: strings["UI_PACK_TYPE_FOUR"]["en"], 5: strings["UI_PACK_TYPE_FIVE"]["en"], 6: strings["UI_PACK_TYPE_SIX"]["en"], 7: strings["UI_PACK_TYPE_SEVEN"]["en"], 8: strings["UI_PACK_TYPE_EIGHT"]} #pack type 6 is a star pack and 7 is a free pack
+    if strings["UI_PACK_TYPE_EIGHT"]["en"] == "LEVELUP":
+        strings["UI_PACK_TYPE_EIGHT"]["en"] = "POWERUP"
+    cardpacks = {-1: "EMPTY", 1: strings["UI_PACK_TYPE_ONE"]["en"], 2: strings["UI_PACK_TYPE_TWO"]["en"], 3: strings["UI_PACK_TYPE_THREE"]["en"], 4: strings["UI_PACK_TYPE_FOUR"]["en"], 5: strings["UI_PACK_TYPE_FIVE"]["en"], 6: strings["UI_PACK_TYPE_SIX"]["en"], 7: strings["UI_PACK_TYPE_SEVEN"]["en"], 8: strings["UI_PACK_TYPE_EIGHT"]["en"]} #pack type 6 is a star pack, 7 is a free pack, and 8 is a powerup pack
     for path in base_paths:
         if os.path.isfile(path):
             partial = json.loads(open(path, 'r').read())

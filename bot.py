@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import asyncio
 import discord
 import json
@@ -174,10 +175,10 @@ async def recv_all(ws):
     return messages
 
 async def get_new_session():
-    portal_ws = await websockets.connect(config["golfblitz_entryURL"], max_size=None)
+    portal_ws = await websockets.connect(config["golfblitz_entryURL"], max_size=None, compression=None)
     response = await portal_ws.recv()
     print("connecting to the main websocket")
-    main_ws = await websockets.connect(json.loads(response)["connectUrl"], max_size=None)
+    main_ws = await websockets.connect(json.loads(response)["connectUrl"], max_size=None, compression=None)
     entryInfo = await main_ws.recv()
     handshake_obj = config["golfblitz_handshakeframe"]
     handshake_obj["hmac"] = base64.b64encode(hmac.new(config["golfblitz_hmac_key"].encode("utf-8"), json.loads(entryInfo)["nonce"].encode("utf-8"), hashlib.sha256).digest()).decode("utf-8")
