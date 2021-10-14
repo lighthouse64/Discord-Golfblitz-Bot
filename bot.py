@@ -34,7 +34,7 @@ heartbeat_task = False
 
 for root, dir, files in os.walk(confPath):
     for file in files:
-        if file != "main-configuration.json" and file != "user_configs.json":
+        if file != "main-configuration.json" and file != "user_configs.json" and file != ".DS_Store":
             confFile = open(os.path.join(confPath, file), "r")
             content = confFile.read()
             bot_globals.group_configs[file[:-5]] = json.loads(content) if content else {"fileLocation": os.path.join(confPath, file)}
