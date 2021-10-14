@@ -586,7 +586,7 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
             rankData[globalLeaderboardCode]["rank"] = rankData[localLeaderboardCode]["rank"] = "n/a"
         body += "  * global rank: " + str(rankData[globalLeaderboardCode]["rank"])
         body += "\n  * local rank: " + str(rankData[localLeaderboardCode]["rank"]) + "\n"
-    body += "  * swishes: {swishes}\n  * number of games played: {gamesplayed}\n  * win rate: {winrate}%\n  * highest trophies: {highscore}\n  * best season rank: {bestrank}".format(swishes=stats["swishes"], gamesplayed=stats["gamesplayed"], winrate=round(100*stats["wins"]/stats["gamesplayed"], 2) if stats["gamesplayed"] else 0, highscore=round(stats["highesttrophies"]), bestrank=round(stats["highestseasonrank"]))
+    body += "  * swishes: {swishes}\n  * number of games won: {gameswon}\n  * number of games played: {gamesplayed}\n  * win rate: {winrate}%\n  * highest trophies: {highscore}\n  * best season rank: {bestrank}".format(swishes=stats["swishes"], gameswon = stats["wins"], gamesplayed=stats["gamesplayed"], winrate=round(100*stats["wins"]/stats["gamesplayed"], 2) if stats["gamesplayed"] else 0, highscore=round(stats["highesttrophies"]), bestrank=round(stats["highestseasonrank"]))
     body += "\n  * seasonal events completed: "
     eventsCompleted = [season for season in smallPlayerData["special_event_stats"] if list(smallPlayerData["special_event_stats"][season].values())[0]["value"] == list(smallPlayerData["special_event_stats"][season].values())[0]["max_value"]]
     body += ", ".join(eventsCompleted) if eventsCompleted else "none"
