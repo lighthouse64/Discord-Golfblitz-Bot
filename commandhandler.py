@@ -175,7 +175,8 @@ async def directlySendMessage(ws, message, message_object):
         sendReq = requests["send_team_chat_message"]
         msgJson = {"msg": message, "type": "chat"}
         sendReq["message"] = json.dumps(msgJson)
-        sendReq["teamId"] = message_object["teamId"]
+        if "teamID" in message_object:
+            sendReq["teamId"] = message_object["teamId"]
         await ws.send(json.dumps(sendReq))
     else:
         await message_object.channel.send(message)
