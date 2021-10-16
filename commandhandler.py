@@ -561,7 +561,7 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
             return "skipJson"
         rankData = response[-1]
 
-    head = smallPlayerData["display_name"] + " " + str(int(smallPlayerData["trophies"]))
+    head = smallPlayerData["display_name"] + " " + chr(127942) + str(int(smallPlayerData["trophies"])) + chr(127942)
     body = "basic player details:\n"
     body += "  * country: " + smallPlayerData["country"] + "\n"
     body += "  * team: " + smallPlayerData["team_name"][4:] + (" (id: " + smallPlayerData["team_id"] + ")" if smallPlayerData["team_id"] else "none")+"\n"
