@@ -175,7 +175,8 @@ async def directlySendMessage(ws, message, message_object):
         sendReq = requests["send_team_chat_message"]
         msgJson = {"msg": message, "type": "chat"}
         sendReq["message"] = json.dumps(msgJson)
-        sendReq["teamId"] = message_object["teamId"]
+        if "teamID" in message_object:
+            sendReq["teamId"] = message_object["teamId"]
         await ws.send(json.dumps(sendReq))
     else:
         await message_object.channel.send(message)
@@ -560,7 +561,7 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
             return "skipJson"
         rankData = response[-1]
 
-    head = smallPlayerData["display_name"] + " " + str(int(smallPlayerData["trophies"]))
+    head = smallPlayerData["display_name"] + " " + chr(127942) + str(int(smallPlayerData["trophies"])) + chr(127942)
     body = "basic player details:\n"
     body += "  * country: " + smallPlayerData["country"] + "\n"
     body += "  * team: " + smallPlayerData["team_name"][4:] + (" (id: " + smallPlayerData["team_id"] + ")" if smallPlayerData["team_id"] else "none")+"\n"
@@ -586,7 +587,7 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
             rankData[globalLeaderboardCode]["rank"] = rankData[localLeaderboardCode]["rank"] = "n/a"
         body += "  * global rank: " + str(rankData[globalLeaderboardCode]["rank"])
         body += "\n  * local rank: " + str(rankData[localLeaderboardCode]["rank"]) + "\n"
-    body += "  * swishes: {swishes}\n  * number of games played: {gamesplayed}\n  * win rate: {winrate}%\n  * highest trophies: {highscore}\n  * best season rank: {bestrank}".format(swishes=stats["swishes"], gamesplayed=stats["gamesplayed"], winrate=round(100*stats["wins"]/stats["gamesplayed"], 2) if stats["gamesplayed"] else 0, highscore=round(stats["highesttrophies"]), bestrank=round(stats["highestseasonrank"]))
+    body += "  * swishes: {swishes}\n  * number of games won: {gameswon}\n  * number of games played: {gamesplayed}\n  * win rate: {winrate}%\n  * highest trophies: {highscore}\n  * best season rank: {bestrank}".format(swishes=stats["swishes"], gameswon = stats["wins"], gamesplayed=stats["gamesplayed"], winrate=round(100*stats["wins"]/stats["gamesplayed"], 2) if stats["gamesplayed"] else 0, highscore=round(stats["highesttrophies"]), bestrank=round(stats["highestseasonrank"]))
     body += "\n  * seasonal events completed: "
     eventsCompleted = [season for season in smallPlayerData["special_event_stats"] if list(smallPlayerData["special_event_stats"][season].values())[0]["value"] == list(smallPlayerData["special_event_stats"][season].values())[0]["max_value"]]
     body += ", ".join(eventsCompleted) if eventsCompleted else "none"
