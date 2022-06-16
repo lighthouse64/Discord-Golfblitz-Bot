@@ -66,6 +66,12 @@ def bgDownloadExtraAssets(downloadablesJson):
     if "error" in downloadablesJson:
         print("ERROR WITH RECEIVING DOWNLOADABLES!\n", downloadablesJson)
     versionKey = downloadablesJson["shortCode"] + "version"
+    keyNumber = re.search(r'\d+', downloadablesJson["shortCode"])
+    if keyNumber: #check if short code ends in a number
+        keyNumber = keyNumber.group(0)
+    else:
+        keyNumber = ""
+    print(keyNumber, versionKey)
     if not versionKey in config:
         config[versionKey] = ""
     if config[versionKey] != downloadablesJson["lastModified"]:
@@ -75,8 +81,11 @@ def bgDownloadExtraAssets(downloadablesJson):
             with open(extraAssetsPath, "wb") as f:
                 for chunk in dl.iter_content(chunk_size=16384):
                     f.write(chunk)
-        with zipfile.ZipFile(extraAssetsPath, 'r') as to_unzip:
-            to_unzip.extractall(bot_globals.extra_assets_path)
+        to_unzip = zipfile.ZipFile(extraAssetsPath, 'r')
+        for zipinfo in to_unzip.infolist():
+            zipinfo.filename = zipinfo.filename.replace(".", keyNumber + ".")
+            to_unzip.extract(zipinfo, bot_globals.extra_assets_path)
+        #to_unzip.extractall(bot_globals.extra_assets_path)
         print("extra assets have been downloaded and extracted")
         config[versionKey] = downloadablesJson["lastModified"]
         json.dump(config, open(os.path.join(confPath, "main-configuration.json"), 'w'))
@@ -219,18 +228,18 @@ async def keepalive(ws):
             print("checking for new assets")
             Thread(target=bgDownloadAssets).start()
             extraAssetsReq = commandhandler.requests["get_extra_assets"]
-            extraAssetsReq["shortCode"] = "NEW_DOWNLOADABLES_HATS_HD"
+            extraAssetsReq["shortCode"] = "NEW_DOWNLOADABLES_HATS_IPADHD"
             await ws.send(json.dumps(extraAssetsReq))
             extraAssetsReq["shortCode"] = "NEW_DOWNLOADABLES_GOLFERS_PT1_IPADHD"
             await ws.send(json.dumps(extraAssetsReq))
             extraAssetsReq["shortCode"] = "NEW_DOWNLOADABLES_GOLFERS_PT2_IPADHD"
-            await ws.send(json.dumps(extraAssetsReq))            
+            await ws.send(json.dumps(extraAssetsReq))
             extraAssetsReq["shortCode"] = "NEW_DOWNLOADABLES_EMOTES"
             await ws.send(json.dumps(extraAssetsReq))
-            extraAssetsReq["shortCode"] = "DOWNLOADABLES_ACCESSORIES_PT1_IPADHD"
+            extraAssetsReq["shortCode"] = "NEW_DOWNLOADABLES_ACCESSORIES_PT1_IPADHD"
             await ws.send(json.dumps(extraAssetsReq))
-            extraAssetsReq["shortCode"] = "DOWNLOADABLES_ACCESSORIES_PT2_IPADHD"
-            await ws.send(json.dumps(extraAssetsReq))            
+            extraAssetsReq["shortCode"] = "NEW_DOWNLOADABLES_ACCESSORIES_PT2_IPADHD"
+            await ws.send(json.dumps(extraAssetsReq))
             lastDownloadablesTimeCheck = time.time()
             await commandhandler.getChallenge(ws, {"noreply": True}, {})
         try:

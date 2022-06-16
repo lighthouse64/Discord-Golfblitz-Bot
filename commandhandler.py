@@ -358,15 +358,12 @@ async def finishGetDownloadablesZip(ws, response, args, message_object):
 
 async def getDownloadablesZip(ws, args, message_object):
     baseReq = requests["get_extra_assets"]
-    baseReq["shortCode"] = "DOWNLOADABLES_"
+    baseReq["shortCode"] = "NEW_DOWNLOADABLES_"
 
     if "type" in args:
         baseReq["shortCode"] += args["type"].upper()
     else:
-        baseReq["shortCode"] += "GOLFERS"
-
-    if not baseReq["shortCode"].endswith("ACCESSORIES"):
-        baseReq["shortCode"] = "NEW_" + baseReq["shortCode"]
+        baseReq["shortCode"] += "GOLFERS_PT1"
 
     if not baseReq["shortCode"].endswith("EMOTES"):
         baseReq["shortCode"] += "_IPADHD"
@@ -637,13 +634,13 @@ async def finishGetExtraPlayerInfo(ws, response, args, message_object):
     body += "\nhats:\n" if showAllCards else "\nlegendary hats: \n"
     for id in corePlayerData["hats"]:
         if id in bot_globals.hats and (bot_globals.hats[id]["rarity"] >= 4 or showAllCards):
-            body += "  * " + bot_globals.hats[id]["name"]["en"] + " x" + str(corePlayerData["hats"][id]["count"]).replace(".0", "") + (" (🔓)" if corePlayerData["hats"][id]["level"] else " (🔒)") + "\n" + bot_globals.safe_split_str
+            body += "  * " + bot_globals.hats[id]["name"]["en"] + " x" + str(corePlayerData["hats"][id]["count"]).replace(".0", "") + ("" if corePlayerData["hats"][id]["level"] else " (🔒)") + "\n" + bot_globals.safe_split_str
         elif not id in bot_globals.hats:
             body += "UNKNOWN HAT with id " + str(id) + "\n" + bot_globals.safe_split_str
     body += "\ngolfers:\n" if showAllCards else "\nlegendary golfers: \n"
     for id in corePlayerData["golfers"]:
         if id in bot_globals.golfers and (bot_globals.golfers[id]["rarity"] >= 4 or showAllCards):
-            body += "  * " + bot_globals.golfers[id]["name"]["en"] + " x" + str(corePlayerData["golfers"][id]["count"]).replace(".0", "") + (" (🔓)" if corePlayerData["golfers"][id]["level"] else " (🔒)") + "\n" + bot_globals.safe_split_str
+            body += "  * " + bot_globals.golfers[id]["name"]["en"] + " x" + str(corePlayerData["golfers"][id]["count"]).replace(".0", "") + ("" if corePlayerData["golfers"][id]["level"] else " (🔒)") + "\n" + bot_globals.safe_split_str
         elif not id in bot_globals.golfers:
             body += "UNKNOWN GOLFER with id " + str(id) + "\n" + bot_globals.safe_split_str
     if "emotes" in corePlayerData:
@@ -835,7 +832,7 @@ async def finishGetTeamInfo(ws, response, args, message_object):
                 for card in sorted(cards, key = lambda c: cards[c]["count"], reverse=True):
                     if cards[card]["count"]:
                         nameRef = bot_globals.golfers if cardtype == "golfer" else bot_globals.hats
-                        body += "  * " + nameRef[card]["name"]["en"] + ": " + str(cards[card]["count"]) + "\n" + bot_globals.safe_split_str
+                        body += "  * " + (nameRef[card]["name"]["en"] if card in nameRef and "name" in nameRef[card] else "UNKNOWN CARD ID " + str(card) + ": ") + ": " + str(cards[card]["count"]) + "\n" + bot_globals.safe_split_str
                         total += cards[card]["count"]
                 body += "total " + cardtype + " cards: " + str(total) + "\n"
         else:

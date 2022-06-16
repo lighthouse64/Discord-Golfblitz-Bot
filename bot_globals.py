@@ -219,7 +219,7 @@ def update_hats_and_golfers():
     for entry in os.scandir(extra_assets_path):
         if entry.path.endswith(".csv"):
             string_paths.append(entry.path)
-        elif entry.path.endswith(".json") and not entry.path.endswith("downloaded_stickperson.json") and not entry.path.endswith("emotes.json"):
+        elif entry.path.endswith(".json") and not ("downloaded_stickperson" in entry.path) and not ("emotes.json" in entry.path):
             base_paths.append(entry.path)
 
     for path in string_paths:
@@ -256,6 +256,8 @@ def update_hats_and_golfers():
         for id in partial:
             elem = partial[id]
             for key in elem:
+                if(type(key) is dict):
+                    continue
                 if type(elem[key]) is dict:
                     continue
                 if elem[key] in strings:
